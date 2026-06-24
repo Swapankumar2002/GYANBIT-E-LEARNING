@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyanbit Admin | Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #3b82f6;
+            --bg-color: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --danger: #ef4444;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center; padding: 2rem;
+            position: relative; overflow-x: hidden;
+        }
+
+        /* Animated Bubble Background */
+        .bubbles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none;
+        }
+        .bubble {
+            position: absolute; bottom: -100px; background: rgba(255, 255, 255, 0.5); border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.8); backdrop-filter: blur(2px);
+            animation: rise infinite ease-in;
+        }
+        .bubble:nth-child(1) { width: 40px; height: 40px; left: 10%; animation-duration: 8s; }
+        .bubble:nth-child(2) { width: 20px; height: 20px; left: 20%; animation-duration: 5s; animation-delay: 1s; }
+        .bubble:nth-child(3) { width: 50px; height: 50px; left: 35%; animation-duration: 10s; animation-delay: 2s; }
+        .bubble:nth-child(4) { width: 80px; height: 80px; left: 50%; animation-duration: 14s; animation-delay: 0s; }
+        .bubble:nth-child(5) { width: 35px; height: 35px; left: 65%; animation-duration: 7s; animation-delay: 3s; }
+        .bubble:nth-child(6) { width: 60px; height: 60px; left: 80%; animation-duration: 12s; animation-delay: 1s; }
+        .bubble:nth-child(7) { width: 25px; height: 25px; left: 90%; animation-duration: 6s; animation-delay: 2s; }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 0.8; }
+            100% { transform: translateY(-120vh) scale(1.2); opacity: 0; }
+        }
+
+        /* KPI Dashboard Area */
+        .kpi-header-row { width: 100%; max-width: 1500px; display: flex; justify-content: flex-end; margin-bottom: 15px; }
+        
+        .btn-toggle-kpi {
+            background: white; border: 1px solid var(--primary); color: var(--primary);
+            padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold;
+            box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px;
+        }
+        .btn-toggle-kpi:hover { background: var(--primary); color: white; }
+
+        .kpi-container {
+            display: none; gap: 1.5rem; width: 100%; max-width: 1500px; margin-bottom: 1.5rem;
+            animation: slideDown 0.4s ease-out;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .kpi-card {
+            flex: 1; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem;
+            backdrop-filter: blur(16px); display: flex; align-items: center; gap: 1.5rem; box-shadow: var(--shadow);
+        }
+        .kpi-icon { font-size: 2.5rem; color: var(--primary); background: rgba(37, 99, 235, 0.1); padding: 1rem; border-radius: 12px; }
+        .kpi-details h4 { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .kpi-details h2 { font-size: 2.2rem; color: var(--text-main); margin: 0; font-family: monospace; }
+
+        /* Main Glass Panel */
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 2rem; width: 100%; max-width: 1500px;
+            box-shadow: var(--shadow); animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .top-controls h2 { font-weight: 700; font-size: 1.8rem; color: var(--primary); }
+        .top-controls h2 span { color: var(--text-main); }
+
+        .search-box { position: relative; flex-grow: 1; max-width: 400px; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-box input {
+            width: 100%; padding: 12px 20px 12px 45px; background: white;
+            border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; color: var(--text-main); font-size: 1rem; transition: all 0.3s;
+        }
+        .search-box input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+
+        .btn-refresh {
+            background: var(--primary); border: none; color: white; font-weight: bold; padding: 12px 24px;
+            border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; gap: 8px; align-items: center; box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+        }
+        .btn-refresh:hover { transform: translateY(-2px); background: var(--secondary); }
+
+        /* Table */
+        .table-wrapper {
+            width: 100%; max-height: 60vh; overflow-y: auto; overflow-x: auto;
+            border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: white;
+        }
+        .table-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th {
+            position: sticky; top: 0; background: #f8fafc; z-index: 10; padding: 16px; text-align: left;
+            color: var(--text-muted); text-transform: uppercase; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; font-weight: 700;
+        }
+        td { padding: 16px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
+        tbody tr { transition: 0.2s; animation: fadeIn 0.4s ease-out forwards; }
+        tbody tr:hover { background: #f8fafc; }
+
+        /* Dropdowns */
+        select.status-badge, select.cert-badge { 
+            padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; 
+            text-transform: uppercase; cursor: pointer; outline: none; appearance: menulist; 
+            transition: 0.3s; width: 110px; text-align: center;
+        }
+        select.status-badge option, select.cert-badge option { background: white; color: var(--text-main); font-weight: bold; }
+        
+        .status-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-pending { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .status-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        
+        .cert-approved { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .cert-pending { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+
+        /* Actions */
+        .action-flex { display: flex; gap: 8px; }
+        .btn-edit { background: white; border: 1px solid #e2e8f0; color: var(--primary); padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: 600; font-size: 0.85rem;}
+        .btn-edit:hover { background: #f1f5f9; border-color: var(--primary); }
+        .btn-delete { background: white; border: 1px solid #fecaca; color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: 600; font-size: 0.85rem;}
+        .btn-delete:hover { background: #fef2f2; border-color: var(--danger); }
+
+        /* Edit Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 2.5rem; width: 100%; max-width: 800px;
+            transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.4rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+        .close-modal { cursor: pointer; color: var(--text-muted); font-size: 1.5rem; transition: 0.2s; }
+        .close-modal:hover { color: var(--danger); }
+
+        .edit-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; }
+        .edit-form .form-group { display: flex; flex-direction: column; }
+        .edit-form label { font-size: 0.85rem; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
+        .edit-form input, .edit-form select { 
+            padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: var(--text-main); font-size: 0.95rem; transition: 0.3s;
+        }
+        .edit-form input:focus, .edit-form select:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        
+        .full-width { grid-column: 1 / -1; }
+        .btn-save { 
+            grid-column: 1 / -1; margin-top: 1rem; padding: 14px; background: var(--primary); color: white; 
+            font-weight: bold; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; 
+        }
+        .btn-save:hover { background: var(--secondary); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+        .remark-required { border-color: var(--danger) !important; background: #fff5f5 !important; }
+
+        .loader {
+            display: none; border: 4px solid #e2e8f0; border-top: 4px solid var(--primary);
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 40px auto;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) { .kpi-container { flex-direction: column; } }
+    </style>
+</head>
+<body>
+
+    <div class="bubbles">
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    </div>
+
+    <div class="kpi-header-row">
+        <button class="btn-toggle-kpi" onclick="toggleKpiVisibility()" id="kpiToggleBtn">
+            <i class="fas fa-chart-line"></i> Show Dashboard
+        </button>
+    </div>
+
+    <div class="kpi-container" id="kpiContainer">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-users"></i></div>
+            <div class="kpi-details">
+                <h4>Total Registrations</h4>
+                <h2 id="totalUsersUI">0</h2>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
+            <div class="kpi-details">
+                <h4>Success Revenue</h4>
+                <h2 id="totalRevenueUI">₹0.00</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-panel">
+        <div class="top-controls">
+            <h2>Gyanbit <span>Admin</span></h2>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by name, email, or course..." onkeyup="filterTable()">
+            </div>
+            <button class="btn-refresh" onclick="fetchData()">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh Data
+            </button>
+        </div>
+
+        <div class="loader" id="loader"></div>
+
+        <div class="table-wrapper" id="tableContainer" style="display: none;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Course</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Certificate</th>
+                        <th>Remark</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> Edit Record</h3>
+                <i class="fas fa-times close-modal" onclick="closeModal()"></i>
+            </div>
+            <form class="edit-form" id="updateForm">
+                <input type="hidden" id="editRowNum">
+                <div class="form-group"><label>Date</label><input type="date" id="editDate" required></div>
+                <div class="form-group"><label>Name</label><input type="text" id="editName" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="editEmail" required></div>
+                <div class="form-group"><label>Mobile</label><input type="text" id="editMobile" required></div>
+                <div class="form-group"><label>Course Name</label><input type="text" id="editCourse" required></div>
+                <div class="form-group"><label>Referral Code</label><input type="text" id="editReferral"></div>
+                <div class="form-group"><label>Amount Paid</label><input type="number" id="editAmount" required></div>
+                <div class="form-group"><label>Payment ID</label><input type="text" id="editPaymentId" required></div>
+                <div class="form-group">
+                    <label>Payment Status</label>
+                    <select id="editStatus" required>
+                        <option value="Success">Success</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Certificate Status</label>
+                    <select id="editCertStatus" required>
+                        <option value="Approved">Approve</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Rejected">Reject</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Remark</label>
+                    <input type="text" id="editRemark" placeholder="Optional notes...">
+                </div>
+                <button type="submit" class="btn-save" id="saveBtn">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- IMPORTANT: PASTE YOUR ENROLLMENTS GOOGLE APPS SCRIPT URL HERE ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby1pEOnzwH4UxKLLSeGSj4_copPxsZGbMedot4xiOZbf9mtnKOmKcCgs1pqU12slk4e/exec';
+        
+        let currentData = [];
+        let actualTotalUsers = "0";
+        let actualTotalRevenue = "0.00";
+
+        const tableBody = document.getElementById('tableBody');
+        const loader = document.getElementById('loader');
+        const tableContainer = document.getElementById('tableContainer');
+        const searchInput = document.getElementById('searchInput');
+        const modal = document.getElementById('editModal');
+        const editStatus = document.getElementById('editStatus');
+        const editCertStatus = document.getElementById('editCertStatus');
+        const editRemark = document.getElementById('editRemark');
+
+        fetchData();
+
+        function toggleKpiVisibility() {
+            const kpiContainer = document.getElementById('kpiContainer');
+            const btn = document.getElementById('kpiToggleBtn');
+            if (kpiContainer.style.display === 'none' || kpiContainer.style.display === '') {
+                kpiContainer.style.display = 'flex';
+                document.getElementById('totalUsersUI').innerText = actualTotalUsers;
+                document.getElementById('totalRevenueUI').innerText = "₹" + actualTotalRevenue;
+                btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Dashboard';
+                btn.style.color = 'var(--danger)'; btn.style.borderColor = 'var(--danger)';
+            } else {
+                kpiContainer.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-chart-line"></i> Show Dashboard';
+                btn.style.color = 'var(--primary)'; btn.style.borderColor = 'var(--primary)';
+            }
+        }
+
+        async function fetchData() {
+            loader.style.display = 'block';
+            tableContainer.style.display = 'none';
+            document.getElementById('refreshIcon').classList.add('fa-spin');
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const json = await response.json();
+                
+                actualTotalUsers = json.totalUsers || 0;
+                actualTotalRevenue = json.totalRevenue || "0.00";
+                
+                document.getElementById('totalUsersUI').innerText = actualTotalUsers;
+                document.getElementById('totalRevenueUI').innerText = "₹" + actualTotalRevenue;
+                
+                currentData = json.data || [];
+                renderTable(currentData);
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--danger);">Error Loading Data.</td></tr>';
+            } finally {
+                loader.style.display = 'none';
+                tableContainer.style.display = 'block';
+                document.getElementById('refreshIcon').classList.remove('fa-spin');
+            }
+        }
+
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No records found.</td></tr>';
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.style.animationDelay = `${index * 0.03}s`;
+                
+                let displayDate = item.date;
+                try { if(item.date) displayDate = new Date(item.date).toLocaleDateString('en-GB'); } catch(e){}
+
+                const rawStatus = String(item.status || 'Pending').toLowerCase().trim();
+                let statusClass = 'status-pending';
+                if(rawStatus === 'success') statusClass = 'status-success';
+                if(rawStatus === 'rejected' || rawStatus === 'failed') statusClass = 'status-rejected';
+                const formattedStatus = rawStatus ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1) : 'Pending';
+                
+                const rawCert = String(item.certStatus || 'Pending').toLowerCase().trim();
+                let certClass = 'cert-pending';
+                if(rawCert === 'approved' || rawCert === 'approve') certClass = 'cert-approved';
+                if(rawCert === 'rejected') certClass = 'status-rejected';
+                const formattedCert = rawCert ? rawCert.charAt(0).toUpperCase() + rawCert.slice(1) : 'Pending';
+
+                const itemJSON = encodeURIComponent(JSON.stringify(item));
+
+                tr.innerHTML = `
+                    <td>${displayDate || '-'}</td>
+                    <td><strong>${item.name || '-'}</strong></td>
+                    <td>${item.email || '-'}</td>
+                    <td>${item.mobile || '-'}</td>
+                    <td>${item.course || '-'}</td>
+                    <td><strong>₹${item.amount || '0'}</strong></td>
+                    <td>
+                        <select class="status-badge ${statusClass}" onchange="updateInlineStatus(this, 'status')"
+                            data-json="${itemJSON}">
+                            <option value="Success" ${formattedStatus === 'Success' ? 'selected' : ''}>Success</option>
+                            <option value="Pending" ${formattedStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Rejected" ${formattedStatus === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="cert-badge ${certClass}" onchange="updateInlineStatus(this, 'cert')"
+                            data-json="${itemJSON}">
+                            <option value="Pending" ${formattedCert === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Approved" ${formattedCert === 'Approved' ? 'selected' : ''}>Approve</option>
+                            <option value="Rejected" ${formattedCert === 'Rejected' ? 'selected' : ''}>Reject</option>
+                        </select>
+                    </td>
+                    <td>${item.remark || '-'}</td>
+                    <td>
+                        <div class="action-flex">
+                            <button class="btn-edit" onclick="openModal('${itemJSON}')"><i class="fas fa-pen"></i></button>
+                            <button class="btn-delete" onclick="deleteRecord('${item.rowNum}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        async function updateInlineStatus(selectElement, type) {
+            const item = JSON.parse(decodeURIComponent(selectElement.dataset.json));
+            const newValue = selectElement.value;
+            let newRemark = item.remark || '';
+
+            if (type === 'status' && newValue === 'Rejected') {
+                newRemark = prompt(`You are rejecting ${item.name}'s payment. \nREQUIRED: Reason for rejection:`);
+                if (!newRemark) {
+                    selectElement.value = item.status; 
+                    return;
+                }
+            } else if (type === 'cert' && newValue === 'Approved') {
+                const confirmCert = confirm(`Approve certificate for ${item.name}? This will automatically push their data to the Certificate Generator sheet.`);
+                if (!confirmCert) {
+                    selectElement.value = item.certStatus || 'Pending';
+                    return;
+                }
+            }
+
+            selectElement.disabled = true; 
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'edit');
+            formData.append('rowNum', item.rowNum);
+            formData.append('date', item.date);
+            formData.append('name', item.name);
+            formData.append('email', item.email);
+            formData.append('mobile', item.mobile);
+            formData.append('course', item.course);
+            formData.append('referral', item.referral);
+            formData.append('amount', item.amount);
+            formData.append('paymentId', item.paymentId);
+            formData.append('status', type === 'status' ? newValue : (item.status || 'Pending'));
+            formData.append('certStatus', type === 'cert' ? newValue : (item.certStatus || 'Pending'));
+            formData.append('remark', newRemark);
+
+            try {
+                Swal.fire({ title: 'Updating...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+                await fetch(SCRIPT_URL, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
+                Swal.close();
+                fetchData(); 
+            } catch (error) {
+                Swal.fire("Error", "Failed to update record.", "error");
+                selectElement.disabled = false;
+            }
+        }
+
+        async function deleteRecord(rowNum) {
+            Swal.fire({
+                title: 'Are you sure?', text: "You won't be able to revert this!", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'delete');
+                    formData.append('rowNum', rowNum);
+                    
+                    try {
+                        await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+                        Swal.fire('Deleted!', 'Record has been deleted.', 'success');
+                        fetchData();
+                    } catch (e) {
+                        Swal.fire("Error", "Failed to delete.", "error");
+                    }
+                }
+            });
+        }
+
+        function filterTable() {
+            const query = searchInput.value.toLowerCase();
+            const filteredData = currentData.filter(item => {
+                const searchString = `${item.name} ${item.email} ${item.course}`.toLowerCase();
+                return searchString.includes(query);
+            });
+            renderTable(filteredData);
+        }
+
+        window.openModal = (encodedItem) => {
+            const item = JSON.parse(decodeURIComponent(encodedItem));
+            document.getElementById('editRowNum').value = item.rowNum; 
+            
+            try { 
+                const d = new Date(item.date);
+                document.getElementById('editDate').value = d.toISOString().split('T')[0];
+            } catch(e) { document.getElementById('editDate').value = item.date; }
+
+            document.getElementById('editName').value = item.name || '';
+            document.getElementById('editEmail').value = item.email || '';
+            document.getElementById('editMobile').value = item.mobile || '';
+            document.getElementById('editCourse').value = item.course || '';
+            document.getElementById('editReferral').value = item.referral || '';
+            document.getElementById('editAmount').value = item.amount || '';
+            document.getElementById('editPaymentId').value = item.paymentId || '';
+            
+            const statusVal = (item.status || 'Pending').trim();
+            editStatus.value = statusVal.charAt(0).toUpperCase() + statusVal.slice(1);
+            
+            const certVal = (item.certStatus || 'Pending').trim();
+            editCertStatus.value = certVal.charAt(0).toUpperCase() + certVal.slice(1);
+            
+            editRemark.value = item.remark || '';
+            editStatus.dispatchEvent(new Event('change')); 
+            modal.classList.add('active');
+        };
+
+        function closeModal() { modal.classList.remove('active'); }
+
+        editStatus.addEventListener('change', (e) => {
+            if (e.target.value === 'Rejected') {
+                editRemark.required = true;
+                editRemark.classList.add('remark-required');
+                editRemark.placeholder = "REQUIRED: Reason for rejection...";
+            } else {
+                editRemark.required = false;
+                editRemark.classList.remove('remark-required');
+                editRemark.placeholder = "Optional notes...";
+            }
+        });
+
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (editStatus.value === 'Rejected' && editRemark.value.trim() === '') {
+                alert("You must provide a remark when rejecting a registration.");
+                return;
+            }
+
+            const btnSave = document.getElementById('saveBtn');
+            btnSave.innerText = "Updating...";
+            btnSave.disabled = true;
+
+            const formData = new URLSearchParams();
+            formData.append('action', 'edit'); 
+            formData.append('rowNum', document.getElementById('editRowNum').value); 
+            formData.append('date', document.getElementById('editDate').value);
+            formData.append('name', document.getElementById('editName').value);
+            formData.append('email', document.getElementById('editEmail').value);
+            formData.append('mobile', document.getElementById('editMobile').value);
+            formData.append('course', document.getElementById('editCourse').value);
+            formData.append('referral', document.getElementById('editReferral').value);
+            formData.append('amount', document.getElementById('editAmount').value);
+            formData.append('paymentId', document.getElementById('editPaymentId').value); 
+            formData.append('status', editStatus.value);
+            formData.append('certStatus', editCertStatus.value);
+            formData.append('remark', editRemark.value);
+
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
+                closeModal();
+                searchInput.value = ''; 
+                fetchData(); 
+            } catch (error) {
+                alert("Failed to update record.");
+            } finally {
+                btnSave.innerText = "Save Changes";
+                btnSave.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

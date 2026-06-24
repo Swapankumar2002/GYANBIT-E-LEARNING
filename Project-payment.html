@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyanbit | Customer Payment Portal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb; 
+            --secondary: #3b82f6;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1f2937;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center; padding: 2rem;
+            position: relative; overflow-x: hidden;
+        }
+
+        /* Bubbles */
+        .bubbles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .bubble {
+            position: absolute; bottom: -100px; background: rgba(255, 255, 255, 0.6); border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.8); backdrop-filter: blur(2px); animation: rise infinite ease-in;
+        }
+        .bubble:nth-child(1) { width: 40px; height: 40px; left: 10%; animation-duration: 8s; }
+        .bubble:nth-child(2) { width: 60px; height: 60px; left: 50%; animation-duration: 12s; }
+        .bubble:nth-child(3) { width: 25px; height: 25px; left: 80%; animation-duration: 6s; }
+        .bubble:nth-child(4) { width: 80px; height: 80px; left: 30%; animation-duration: 15s; }
+        @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0.8; } 100% { transform: translateY(-120vh) scale(1.2); opacity: 0; } }
+
+        /* Login */
+        .auth-container {
+            background: var(--glass-bg); padding: 3rem; border-radius: 20px; box-shadow: var(--shadow);
+            text-align: center; width: 100%; max-width: 450px; margin-top: 10vh; animation: slideUp 0.5s ease-out;
+        }
+        .auth-container h2 { color: var(--primary); margin-bottom: 0.5rem; font-size: 2rem; text-transform: uppercase; font-weight: 800;}
+        .auth-container p { color: #6b7280; margin-bottom: 1.5rem; }
+        .auth-container input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; transition: 0.3s; }
+        .auth-container input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+        .btn-primary { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;}
+        .btn-primary:hover { background: var(--secondary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37,99,235,0.3); }
+
+        /* Dashboard */
+        .dashboard-container { display: none; width: 100%; max-width: 1200px; animation: fadeIn 0.5s ease-out; }
+        .header-card { background: var(--glass-bg); padding: 2rem; border-radius: 20px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem; }
+        .user-info h2 { color: var(--primary); font-size: 2rem; margin-bottom: 0.5rem; }
+        .user-info p { color: #4b5563; font-size: 1rem; margin-bottom: 0.3rem; }
+        .user-info i { width: 20px; color: var(--secondary); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap; }
+        .btn-pay { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(16,185,129,0.3); }
+        .btn-pay:hover { background: #059669; transform: translateY(-2px); }
+        .btn-pay:disabled { background: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-statement { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
+        .btn-statement:hover { background: var(--secondary); transform: translateY(-2px); }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; width: 100%; margin-top: 1rem; }
+        .kpi-card { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; }
+        .kpi-card h4 { color: #6b7280; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .kpi-card h3 { font-size: 1.8rem; font-family: monospace; }
+
+        /* Table */
+        .table-card { background: var(--glass-bg); padding: 2rem; border-radius: 20px; box-shadow: var(--shadow); }
+        .table-card h3 { margin-bottom: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; background: white; }
+        th { padding: 15px; text-align: left; background: #f8fafc; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; }
+        td { padding: 15px; border-top: 1px solid #f1f5f9; color: #374151; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .status-success { background: #dcfce7; color: #166534; }
+        .status-pending { background: #fef9c3; color: #854d0e; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+        .btn-download { background: white; color: var(--primary); border: 1px solid var(--primary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-download:hover { background: var(--primary); color: white; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 2.5rem; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; position: relative; animation: slideUp 0.3s ease-out; }
+        .modal-content h3 { margin-bottom: 0.5rem; color: var(--text-main); font-size: 1.5rem; }
+        .input-group { position: relative; margin-bottom: 1.5rem; }
+        .input-group span { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: #6b7280; }
+        .modal-content input { width: 100%; padding: 15px 15px 15px 35px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1.5rem; font-weight: bold; color: var(--primary); transition: 0.3s; }
+        .modal-content input:focus { outline: none; border-color: var(--primary); }
+        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.8rem; color: #9ca3af; transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); }
+        
+        .loader { display: none; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="bubbles"><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+
+    <div class="auth-container" id="loginScreen">
+        <h2>Gyanbit Pvt. Ltd.</h2>
+        <p>Enter your registered email to view your ledger.</p>
+        <input type="email" id="loginEmail" placeholder="e.g., yourname@email.com" required>
+        <button class="btn-primary" onclick="authenticateUser()" id="loginBtn">Secure Login</button>
+        <div class="loader" id="loginLoader"></div>
+        <p id="loginError" style="color: var(--danger); margin-top: 15px; display: none; font-weight: bold;">Email not found in our records.</p>
+    </div>
+
+    <div class="dashboard-container" id="dashboardScreen">
+        <div class="header-card">
+            <div class="user-info">
+                <h2>Welcome, <span id="uiName">Client</span>!</h2>
+                <p><i class="fas fa-envelope"></i> <span id="uiEmail">email@example.com</span></p>
+                <p><i class="fas fa-phone"></i> <span id="uiMobile">+00 0000000000</span></p>
+                <p><i class="fas fa-briefcase"></i> Project: <strong id="uiProject" style="color: var(--primary);">Loading...</strong></p>
+                
+                <div class="btn-group">
+                    <button class="btn-pay" onclick="openPaymentModal()" id="mainPayBtn">
+                        <i class="fas fa-credit-card"></i> Pay via Razorpay
+                    </button>
+                    <button class="btn-statement" onclick="downloadFullStatement()">
+                        <i class="fas fa-file-pdf"></i> Download Full Statement
+                    </button>
+                </div>
+            </div>
+            
+            <div style="flex-grow: 1; min-width: 300px;">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <h4>Total Amount</h4>
+                        <h3 style="color: var(--primary);" id="uiTotal">₹0.00</h3>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Amount Paid</h4>
+                        <h3 style="color: var(--success);" id="uiPaid">₹0.00</h3>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Remaining Balance</h4>
+                        <h3 style="color: var(--danger);" id="uiRemaining">₹0.00</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <h3><i class="fas fa-file-invoice-dollar"></i> Transaction History</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Transaction ID</th>
+                            <th>Amount Paid</th>
+                            <th>Remaining</th>
+                            <th>Status</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePaymentModal()">&times;</span>
+            <h3>Make a Payment</h3>
+            <p>Remaining Balance: <strong style="color: var(--danger);" id="modalRemaining">₹0.00</strong></p>
+            
+            <div class="input-group">
+                <span>₹</span>
+                <input type="number" id="payAmount" placeholder="0.00" min="1">
+            </div>
+            
+            <button class="btn-primary" onclick="initiateRazorpay()" id="payBtn">
+                <i class="fas fa-lock"></i> Pay via Razorpay
+            </button>
+            <div class="loader" id="payLoader"></div>
+            <p id="savingText" style="display:none; color: var(--success); font-weight: bold; margin-top: 10px;">Payment successful! Saving to ledger...</p>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // CONFIGURATION
+        // =========================================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd8hZ_t-d5r27R4MOAwuzJ4jPEPPwoec6RUk3yg-SWfJQ-YWnWJt1cUGKGlYW1yaq9/exec';
+        const RAZORPAY_KEY_ID = 'rzp_live_RptkzEZekkhuLC'; // E.g., rzp_test_xxxxx or rzp_live_xxxxx
+        const COMPANY_LOGO_BASE64 = ""; // Optional: Add Base64 string for PDF logo
+        // =========================================================
+
+        let allUserRecords = [];
+        let currentUserData = null;
+        let cumulativePaid = 0;
+        let actualRemaining = 0;
+        let totalProjectAmount = 0;
+
+        async function authenticateUser() {
+            const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
+            if (!emailInput) return;
+
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('loginLoader').style.display = 'block';
+            document.getElementById('loginError').style.display = 'none';
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?email=${encodeURIComponent(emailInput)}`);
+                const json = await response.json();
+                
+                if (json.data && json.data.length > 0) {
+                    allUserRecords = json.data;
+                    currentUserData = allUserRecords[allUserRecords.length - 1]; 
+                    calculateFinancials(allUserRecords);
+                    document.getElementById('loginScreen').style.display = 'none';
+                    buildDashboard(allUserRecords);
+                } else {
+                    throw new Error("User not found");
+                }
+            } catch (error) {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginBtn').style.display = 'block';
+                document.getElementById('loginLoader').style.display = 'none';
+            }
+        }
+
+        function calculateFinancials(records) {
+            cumulativePaid = 0;
+            totalProjectAmount = 0;
+
+            records.forEach(record => {
+                const recordTotal = Number(String(record.totalAmount).replace(/,/g, '')) || 0;
+                if (recordTotal > totalProjectAmount) totalProjectAmount = recordTotal;
+
+                if (String(record.status).trim().toLowerCase() === 'success') {
+                    cumulativePaid += Number(String(record.amountPaid).replace(/,/g, '')) || 0;
+                }
+            });
+
+            actualRemaining = totalProjectAmount - cumulativePaid;
+            if (actualRemaining <= 0) actualRemaining = 0; 
+        }
+
+        function buildDashboard(records) {
+            document.getElementById('dashboardScreen').style.display = 'block';
+            
+            document.getElementById('uiName').innerText = currentUserData.name || 'Client';
+            document.getElementById('uiEmail').innerText = currentUserData.email || 'N/A';
+            document.getElementById('uiMobile').innerText = currentUserData.mobile || 'N/A';
+            document.getElementById('uiProject').innerText = currentUserData.projectName || 'N/A';
+
+            document.getElementById('uiTotal').innerText = `₹${totalProjectAmount.toLocaleString('en-IN')}`;
+            document.getElementById('uiPaid').innerText = `₹${cumulativePaid.toLocaleString('en-IN')}`;
+            document.getElementById('uiRemaining').innerText = `₹${actualRemaining.toLocaleString('en-IN')}`;
+
+            const payBtn = document.getElementById('mainPayBtn');
+            if (actualRemaining <= 0) {
+                payBtn.disabled = true;
+                payBtn.innerHTML = '<i class="fas fa-check-circle"></i> Fully Paid';
+                payBtn.style.background = '#10b981';
+            } else {
+                payBtn.disabled = false;
+                payBtn.innerHTML = '<i class="fas fa-credit-card"></i> Pay via Razorpay';
+                payBtn.style.background = 'var(--success)';
+            }
+
+            let runningPaid = 0;
+            let enhancedRecords = records.map(r => {
+                if (String(r.status).trim().toLowerCase() === 'success') {
+                    runningPaid += Number(String(r.amountPaid).replace(/,/g, '')) || 0;
+                }
+                let histRem = totalProjectAmount - runningPaid;
+                if (histRem < 0) histRem = 0;
+                return { ...r, calculatedRemaining: histRem };
+            });
+
+            const tbody = document.getElementById('paymentHistoryBody');
+            tbody.innerHTML = '';
+            const sortedRecords = [...enhancedRecords].reverse();
+
+            sortedRecords.forEach(record => {
+                const isSuccess = String(record.status).toLowerCase() === 'success';
+                let badgeClass = isSuccess ? 'status-success' : (String(record.status).toLowerCase() === 'pending' ? 'status-pending' : 'status-failed');
+
+                const tr = document.createElement('tr');
+                const pData = encodeURIComponent(JSON.stringify(record));
+
+                tr.innerHTML = `
+                    <td>
+                        <strong style="color: var(--text-main);">${record.date || '-'}</strong><br>
+                        <small style="color:#9ca3af;">${record.time || ''}</small>
+                    </td>
+                    <td><strong style="font-family:monospace;">${record.transactionId || 'N/A'}</strong></td>
+                    <td><strong>₹${(Number(String(record.amountPaid).replace(/,/g, ''))||0).toLocaleString('en-IN')}</strong></td>
+                    <td>₹${(record.calculatedRemaining).toLocaleString('en-IN')}</td>
+                    <td><span class="status-badge ${badgeClass}">${record.status || 'Pending'}</span></td>
+                    <td>
+                        ${isSuccess ? `<button class="btn-download" onclick="downloadReceipt('${pData}')"><i class="fas fa-download"></i> Receipt</button>` : '-'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openPaymentModal() {
+            document.getElementById('paymentModal').style.display = 'flex';
+            document.getElementById('modalRemaining').innerText = `₹${actualRemaining.toLocaleString('en-IN')}`;
+            document.getElementById('payAmount').value = '';
+            document.getElementById('savingText').style.display = 'none';
+        }
+        function closePaymentModal() { document.getElementById('paymentModal').style.display = 'none'; }
+
+        // =========================================================
+        // RAZORPAY INTEGRATION LOGIC
+        // =========================================================
+        function initiateRazorpay() {
+            const amountToPay = Number(document.getElementById('payAmount').value);
+            if (!amountToPay || amountToPay <= 0) { alert("Enter a valid amount."); return; }
+            if (amountToPay > actualRemaining) { alert(`Cannot exceed remaining balance (₹${actualRemaining}).`); return; }
+
+            // Razorpay accepts amounts in the smallest currency unit (paise)
+            const amountInPaise = amountToPay * 100;
+
+            const options = {
+                "key": RAZORPAY_KEY_ID, 
+                "amount": amountInPaise, 
+                "currency": "INR",
+                "name": "Gyanbit Pvt. Ltd.",
+                "description": "Payment for " + currentUserData.projectName,
+                "image": COMPANY_LOGO_BASE64, // Optional
+                "handler": function (response) {
+                    // This function triggers ONLY if the payment is successful
+                    const actualTxnId = response.razorpay_payment_id;
+                    savePaymentToLedger(amountToPay, actualTxnId);
+                },
+                "prefill": {
+                    "name": currentUserData.name,
+                    "email": currentUserData.email,
+                    "contact": currentUserData.mobile
+                },
+                "theme": { "color": "#2563eb" }
+            };
+
+            const rzp = new Razorpay(options);
+            
+            rzp.on('payment.failed', function (response){
+                alert("Payment Failed. Reason: " + response.error.description);
+            });
+            
+            rzp.open();
+        }
+
+        // Saves to Google Sheets AFTER Razorpay succeeds
+        async function savePaymentToLedger(amountToPay, razorpayTxnId) {
+            document.getElementById('payBtn').style.display = 'none';
+            document.getElementById('payLoader').style.display = 'block';
+            document.getElementById('savingText').style.display = 'block';
+
+            const now = new Date();
+            const newRemainingBalance = actualRemaining - amountToPay;
+
+            const payload = {
+                name: currentUserData.name,
+                mobile: currentUserData.mobile,
+                email: currentUserData.email,
+                totalAmount: totalProjectAmount,
+                amountPaid: amountToPay,
+                remainingAmount: newRemainingBalance, 
+                transactionId: razorpayTxnId, // <--- Saving the Real Razorpay ID here
+                date: now.toLocaleDateString('en-IN'),
+                time: now.toLocaleTimeString('en-IN'),
+                projectName: currentUserData.projectName,
+                status: 'Success',
+                remark: 'Razorpay Online Payment'
+            };
+
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                alert(`Ledger Updated Successfully!\nTransaction ID: ${razorpayTxnId}`);
+                closePaymentModal();
+                
+                // Refresh dashboard automatically
+                document.getElementById('dashboardScreen').style.display = 'none';
+                authenticateUser(); 
+            } catch (e) {
+                alert("Payment was successful but failed to save to ledger. Please contact support.");
+            } finally {
+                document.getElementById('payBtn').style.display = 'block';
+                document.getElementById('payLoader').style.display = 'none';
+                document.getElementById('savingText').style.display = 'none';
+            }
+        }
+        // =========================================================
+
+        // --- PDF Generation Functions ---
+        function downloadReceipt(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const isFullPayment = data.calculatedRemaining <= 0;
+            const receiptTitle = isFullPayment ? "FULL PAYMENT RECEIPT" : "PART PAYMENT RECEIPT";
+            const amtStr = Number(String(data.amountPaid).replace(/,/g, '')).toLocaleString('en-IN');
+
+            if (COMPANY_LOGO_BASE64) {
+                doc.addImage(COMPANY_LOGO_BASE64, 'PNG', 15, 15, 40, 12);
+            } else {
+                doc.setTextColor(37, 99, 235);
+                doc.setFontSize(22);
+                doc.setFont("helvetica", "bold");
+                doc.text("GYANBIT PVT. LTD.", 15, 25);
+            }
+
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text("HALDIA, NANDIGRAM, PURBAMEDINIPUR", 15, 32);
+            doc.text("Email: helpdesk.gyanbit@gmail.com", 15, 37);
+
+            doc.setFillColor(37, 99, 235); 
+            doc.rect(120, 18, 75, 12, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text(receiptTitle, 125, 26);
+            doc.setTextColor(120, 120, 120);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Transaction Date: ${data.date || '-'}`, 125, 36);
+
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("RECIPIENT:", 15, 60);
+
+            doc.setTextColor(40, 40, 40);
+            doc.setFontSize(14);
+            doc.text(data.name || 'Client Name', 15, 67);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${data.email || 'N/A'}`, 15, 73);
+            doc.text(`Phone: ${data.mobile || 'N/A'}`, 15, 78);
+
+            doc.setFont("helvetica", "bold");
+            doc.text(`Receipt No: ${data.transactionId || 'N/A'}`, 125, 60);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Date: ${data.date || '-'}`, 125, 67);
+            doc.text(`Time: ${data.time || '-'}`, 125, 73);
+
+            doc.autoTable({
+                startY: 90,
+                head: [['PROJECT / SERVICE', 'DESCRIPTION', 'QTY.', 'COST', 'TOTAL']],
+                body: [
+                    [data.projectName || 'Service Fee', 'Project Service Payment', '1', `Rs. ${amtStr}`, `Rs. ${amtStr}`]
+                ],
+                theme: 'plain',
+                headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+                bodyStyles: { textColor: [50, 50, 50] },
+                alternateRowStyles: { fillColor: [250, 250, 250] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 120;
+
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Receipt for Payment", 125, finalY + 20);
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Total Project Cost", 125, finalY + 30);
+            doc.text(`Rs. ${totalProjectAmount.toLocaleString('en-IN')}`, 195, finalY + 30, null, null, "right");
+            
+            doc.text("Remaining Balance", 125, finalY + 38);
+            doc.text(`Rs. ${data.calculatedRemaining.toLocaleString('en-IN')}`, 195, finalY + 38, null, null, "right");
+
+            doc.setDrawColor(220, 220, 220);
+            doc.line(125, finalY + 44, 195, finalY + 44);
+
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(37, 99, 235);
+            doc.text("Amount Paid", 125, finalY + 52);
+            doc.text(`Rs. ${amtStr}`, 195, finalY + 52, null, null, "right");
+
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(100, 100, 100);
+            doc.text("Thanks for your business!", 15, finalY + 20);
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Note: This is a computer-generated receipt and requires no physical signature.", 105, 280, null, null, "center");
+
+            doc.save(`Gyanbit_Receipt_${data.transactionId || '001'}.pdf`);
+        }
+
+        function downloadFullStatement() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("GYANBIT PVT. LTD.", 15, 25);
+            
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text("HALDIA, NANDIGRAM, PURBAMEDINIPUR", 15, 32);
+            doc.text("Email: helpdesk.gyanbit@gmail.com", 15, 37);
+
+            doc.setFillColor(37, 99, 235); 
+            doc.rect(130, 18, 65, 12, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("STATEMENT OF ACCOUNT", 135, 26);
+
+            doc.setTextColor(37, 99, 235);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("CLIENT DETAILS:", 15, 60);
+
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(12);
+            doc.text(currentUserData.name || 'Client', 15, 67);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${currentUserData.email || 'N/A'}`, 15, 73);
+            doc.text(`Phone: ${currentUserData.mobile || 'N/A'}`, 15, 78);
+            doc.text(`Project: ${currentUserData.projectName || 'N/A'}`, 15, 83);
+
+            const successfulPayments = allUserRecords.filter(r => String(r.status).trim().toLowerCase() === 'success');
+            const tableBodyData = successfulPayments.map(r => [
+                r.date || '-', 
+                r.time || '-',
+                r.transactionId || '-', 
+                `Rs. ${Number(String(r.amountPaid).replace(/,/g, '')).toLocaleString('en-IN')}`
+            ]);
+
+            doc.autoTable({
+                startY: 95,
+                head: [['PAYMENT DATE', 'TIME', 'TRANSACTION ID', 'AMOUNT']],
+                body: tableBodyData,
+                theme: 'plain',
+                headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 150;
+            
+            doc.setFontSize(10);
+            doc.text(`Total Project Cost: Rs. ${totalProjectAmount.toLocaleString('en-IN')}`, 130, finalY + 15);
+            doc.text(`Total Amount Paid: Rs. ${cumulativePaid.toLocaleString('en-IN')}`, 130, finalY + 22);
+            
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(37, 99, 235); 
+            doc.text(`Balance Due: Rs. ${actualRemaining.toLocaleString('en-IN')}`, 130, finalY + 32);
+
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text("Note: This is a computer-generated statement and requires no physical signature.", 105, 280, null, null, "center");
+
+            doc.save(`Gyanbit_Statement_${currentUserData.name}.pdf`);
+        }
+    </script>
+</body>
+</html>

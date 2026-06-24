@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyanbit | Courses & Internships</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+        
+        /* Gyanbit Brand Gradient */
+        .brand-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(59, 130, 246, 0.15); }
+        .modal { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; transform: scale(0.95); }
+        .modal.active .modal-content { transform: scale(1); }
+        
+        /* Spinner */
+        .loader { border-top-color: #1e3a8a; -webkit-animation: spinner 1s linear infinite; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+    </style>
+</head>
+<body>
+
+    <nav class="bg-white border-b border-gray-200 fixed w-full z-10 top-0 shadow-sm backdrop-blur-md bg-white/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 brand-gradient rounded-lg flex items-center justify-center text-white text-lg font-bold shadow-blue-200 shadow-lg">
+                        G
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900 tracking-tight leading-none">Gyanbit</h1>
+                        <p class="text-[10px] uppercase tracking-wider text-blue-600 font-semibold">Pvt. Ltd.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-5">
+                    
+                    <a href="REFERAL-CODE.HTML" target="_blank" class="cursor-pointer group relative">
+                        <div class="h-11 w-11 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 shadow-sm hover:bg-indigo-600 hover:text-white transition-all transform group-hover:scale-105 border-2 border-white ring-2 ring-gray-100">
+                            <i class="fa-solid fa-ticket"></i>
+                        </div>
+                        <span class="absolute right-0 top-14 w-max bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition shadow-lg">
+                            MANAGE COUPONS
+                        </span>
+                    </a>
+
+                    <button onclick="toggleAdmin()" id="adminToggle" class="text-gray-400 hover:text-blue-900 transition-colors" title="Admin Mode">
+                        <i class="fa-solid fa-lock text-lg"></i>
+                    </button>
+
+                    <div onclick="openModal()" class="cursor-pointer group relative">
+                        <div class="h-11 w-11 bg-gray-900 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-blue-700 transition-all transform group-hover:scale-105 border-2 border-white ring-2 ring-gray-100">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <span class="absolute right-0 top-14 w-max bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition shadow-lg">
+                            ADD COURSE
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-28 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Featured Opportunities</h2>
+                <p class="text-sm text-gray-500 mt-1">Explore our latest courses and internships.</p>
+            </div>
+            <div id="statusMsg" class="text-xs font-medium text-green-600 hidden bg-green-50 px-2 py-1 rounded-md border border-green-100">
+                <i class="fa-solid fa-circle-check mr-1"></i> Data Synced
+            </div>
+        </div>
+
+        <div id="loader" class="flex flex-col justify-center items-center h-64">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10 mb-4"></div>
+            <p class="text-xs text-gray-400 font-medium">Loading Gyanbit Database...</p>
+        </div>
+
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 hidden">
+            </div>
+
+    </main>
+
+    <div id="modal" class="modal fixed inset-0 bg-gray-900/60 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="modal-content bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            
+            <div class="brand-gradient px-6 py-4 flex justify-between items-center">
+                <h2 class="text-white font-bold text-lg" id="modalTitle">Add New Course</h2>
+                <button type="button" onclick="closeModal()" class="text-white/80 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <form id="dataForm" onsubmit="handleSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="rowIndex">
+                    <input type="hidden" id="itemId">
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Course / Internship Title</label>
+                        <input type="text" id="inpTitle" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition bg-gray-50 focus:bg-white" placeholder="e.g. Full Stack Development">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Category</label>
+                            <select id="inpType" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white">
+                                <option>Technical</option>
+                                <option>Management</option>
+                                <option>Design</option>
+                                <option>Marketing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Price (₹)</label>
+                            <input type="number" id="inpPrice" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white" placeholder="2999">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">GST Amount (₹)</label>
+                            <input type="number" id="inpGst" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white" placeholder="e.g. 540">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Duration</label>
+                            <input type="text" id="inpDuration" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white" placeholder="e.g. 3 Months, 6 Weeks">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Image URL</label>
+                        <input type="url" id="inpImage" required placeholder="https://..." class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-gray-50 focus:bg-white">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Visible to Public</label>
+                            <p class="text-[10px] text-gray-500">Turn off to hide this course from users.</p>
+                        </div>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="inpVisible" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0"/>
+                            <label for="inpVisible" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="btnSave" class="w-full brand-gradient text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all flex justify-center items-center gap-2 text-sm">
+                            <i class="fa-solid fa-save"></i> Save Details
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 🔴 PASTE YOUR GOOGLE WEB APP URL HERE
+        // ============================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbxkwT26qJKDS3O6VNYTd-DtSA13QsUMQcteUbyeVSDXLKKxz4ykpwSQ1INileSu68PH/exec";
+
+        let products = [];
+        let isAdmin = false;
+
+        async function loadData() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                
+                // IMPORTANT UPDATE: The API now sends data.courses instead of just an array
+                products = data.courses ? data.courses : data; 
+
+                render();
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('productGrid').classList.remove('hidden');
+                document.getElementById('statusMsg').classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                Swal.fire("Connection Error", "Is the script deployed?", "error");
+            }
+        }
+
+        function render() {
+            const grid = document.getElementById('productGrid');
+            
+            // Filter products: If NOT admin, only show visible products
+            const visibleProducts = products.filter(item => {
+                // If it's missing or strictly not false, treat as true
+                const isHidden = item.isVisible === false || item.isVisible === 'false' || item.isVisible === 'FALSE';
+                if (isAdmin) return true; // Admin sees everything
+                return !isHidden; // Users only see non-hidden
+            });
+
+            if(visibleProducts.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400">No courses available at the moment.</div>`;
+                return;
+            }
+
+            grid.innerHTML = visibleProducts.map(item => {
+                const isHidden = item.isVisible === false || item.isVisible === 'false' || item.isVisible === 'FALSE';
+                
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden card-hover transition-all duration-300 flex flex-col h-full group ${isHidden ? 'opacity-75 grayscale-[20%]' : ''}">
+                    
+                    <div class="h-48 overflow-hidden relative">
+                        <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onerror="this.src='https://placehold.co/600x400?text=No+Image'">
+                        
+                        <div class="absolute top-3 left-3">
+                             <span class="bg-white/90 backdrop-blur-md text-blue-800 text-[10px] px-3 py-1 rounded-full uppercase tracking-wider font-bold shadow-sm border border-blue-100">
+                                ${item.type}
+                            </span>
+                        </div>
+
+                        ${isHidden && isAdmin ? `
+                        <div class="absolute top-3 right-3">
+                             <span class="bg-red-500 text-white text-[10px] px-2 py-1 rounded shadow uppercase tracking-wider font-bold">
+                                <i class="fa-solid fa-eye-slash mr-1"></i> Hidden
+                            </span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="p-5 flex-1 flex flex-col">
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight line-clamp-2 group-hover:text-blue-700 transition-colors">${item.title}</h3>
+                        
+                        ${item.duration ? `<p class="text-xs text-gray-500 mb-2 font-medium"><i class="fa-regular fa-clock mr-1"></i> ${item.duration}</p>` : ''}
+                        
+                        <div class="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold uppercase">Course Fee</p>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-xl font-bold text-gray-900">₹${item.price}</span>
+                                    ${item.gst ? `<span class="text-[10px] text-gray-500 font-medium">+ ₹${item.gst} GST</span>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="flex gap-2 ${isAdmin ? '' : 'hidden'}">
+                                <button onclick='editItem(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button onclick="deleteItem(${item.rowIndex})" class="h-8 w-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `
+            }).join('');
+        }
+
+        function toggleAdmin() {
+            isAdmin = !isAdmin;
+            const icon = document.querySelector('#adminToggle i');
+            icon.className = isAdmin ? "fa-solid fa-unlock text-blue-600" : "fa-solid fa-lock";
+            
+            if(isAdmin) {
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'success', 
+                    title: 'Admin Mode: Unlocked', showConfirmButton: false, timer: 1500
+                });
+            }
+            render();
+        }
+
+        const modal = document.getElementById('modal');
+        function openModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('active'), 10);
+            document.getElementById('modalTitle').innerText = "Add New Course";
+            document.getElementById('dataForm').reset();
+            document.getElementById('rowIndex').value = "";
+            document.getElementById('itemId').value = "";
+            document.getElementById('inpVisible').checked = true; 
+        }
+        
+        function editItem(item) {
+            openModal();
+            document.getElementById('modalTitle').innerText = "Edit Course";
+            document.getElementById('rowIndex').value = item.rowIndex;
+            document.getElementById('itemId').value = item.id;
+            document.getElementById('inpTitle').value = item.title;
+            document.getElementById('inpType').value = item.type;
+            document.getElementById('inpPrice').value = item.price;
+            document.getElementById('inpGst').value = item.gst || '';
+            document.getElementById('inpDuration').value = item.duration || '';
+            document.getElementById('inpImage').value = item.image;
+            
+            const isVis = item.isVisible !== false && item.isVisible !== 'false' && item.isVisible !== 'FALSE';
+            document.getElementById('inpVisible').checked = isVis;
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...`;
+            btn.disabled = true;
+
+            const payload = {
+                action: document.getElementById('rowIndex').value ? "update" : "create",
+                rowIndex: document.getElementById('rowIndex').value,
+                id: document.getElementById('itemId').value,
+                title: document.getElementById('inpTitle').value,
+                type: document.getElementById('inpType').value,
+                price: document.getElementById('inpPrice').value,
+                gst: document.getElementById('inpGst').value,
+                duration: document.getElementById('inpDuration').value,
+                image: document.getElementById('inpImage').value,
+                isVisible: document.getElementById('inpVisible').checked
+            };
+
+            try {
+                await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+                closeModal();
+                Swal.fire("Success", "Database Updated!", "success");
+                loadData();
+            } catch (err) {
+                Swal.fire("Error", "Check your internet or script URL.", "error");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteItem(rowIndex) {
+            Swal.fire({
+                title: 'Delete Course?', text: "This will remove it from the Gyanbit database.", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes, delete it'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "delete", rowIndex: rowIndex }) });
+                    Swal.fire("Deleted", "", "success");
+                    loadData();
+                }
+            })
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

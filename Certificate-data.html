@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gyanbit | Certificate Manager</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .brand-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        
+        /* Modal Transitions */
+        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .modal.active .modal-content { transform: scale(1); }
+        
+        /* Custom Scrollbar for Table */
+        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        
+        /* Hide scrollbar for main body to prevent double scroll */
+        body::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="h-[100dvh] flex flex-col text-gray-800 overflow-hidden">
+
+    <nav class="bg-white border-b border-gray-200 flex-none h-16 sm:h-20 flex items-center justify-between px-4 sm:px-8 shadow-sm z-30 relative">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 sm:h-10 sm:w-10 brand-gradient rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-200/50">G</div>
+            <div class="flex flex-col">
+                <h1 class="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none">Gyanbit</h1>
+                <p class="text-[10px] uppercase tracking-wider text-blue-600 font-bold hidden sm:block">Certificate Manager</p>
+            </div>
+        </div>
+
+        <button onclick="openModal()" class="group bg-gray-900 hover:bg-blue-600 text-white px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm font-medium active:scale-95">
+            <i class="fa-solid fa-plus text-base sm:text-lg group-hover:rotate-90 transition-transform"></i>
+            <span>Add <span class="hidden sm:inline">Record</span></span>
+        </button>
+    </nav>
+
+    <main class="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden relative w-full max-w-7xl mx-auto">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4 shrink-0">
+            <div class="relative w-full sm:w-96 group shadow-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400 group-focus-within:text-blue-600 transition-colors text-sm"></i>
+                <input type="text" id="searchInput" onkeyup="filterData()" 
+                    placeholder="Search by ID, Name or Mobile..." 
+                    class="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm bg-white placeholder-gray-400">
+            </div>
+
+            <div id="status" class="text-xs font-medium text-gray-500 flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-100 shadow-sm self-end sm:self-auto cursor-pointer hover:bg-gray-50 transition" onclick="fetchData()">
+                <i class="fa-solid fa-circle-notch fa-spin text-blue-600" id="syncIcon"></i> <span id="syncText">Syncing...</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-gray-200 flex-1 overflow-hidden flex flex-col relative">
+            
+            <div class="overflow-auto custom-scroll flex-1 w-full">
+                <table class="w-full text-left border-collapse min-w-[1000px]"> 
+                    <thead class="bg-gray-50/90 backdrop-blur sticky top-0 z-10 border-b border-gray-200">
+                        <tr class="text-xs uppercase text-gray-500 font-bold tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">ID & Name</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">Contact Info</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">Course Details</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">Date</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">Status</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 text-center whitespace-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
+                        </tbody>
+                </table>
+            </div>
+            
+            <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-0 p-6 text-center">
+                <div class="bg-gray-50 p-4 rounded-full mb-3 animate-pulse">
+                    <i class="fa-solid fa-database text-3xl text-gray-300"></i>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900">No records found</h3>
+                <p class="text-gray-500 text-xs mt-1">Try a different search term or check your database.</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="modal fixed inset-0 z-50 hidden bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+        <div class="modal-content bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90dvh]">
+            
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+                <div>
+                    <h2 id="modalTitle" class="text-lg font-bold text-gray-900">Add Record</h2>
+                </div>
+                <button type="button" onclick="closeModal()" class="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 transition flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto custom-scroll p-6">
+                <form id="certForm" onsubmit="handleSubmit(event)" class="space-y-5">
+                    <input type="hidden" id="rowIndex">
+                    <input type="hidden" id="inpStatus" value="Pending"> <input type="hidden" id="isReleasingFlag" value="false"> <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Cert ID (Auto)</label>
+                            <input type="text" id="inpId" readonly class="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 font-mono text-sm cursor-not-allowed select-none focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Student Name</label>
+                            <input type="text" id="inpName" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="Full Name">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Email ID</label>
+                            <input type="email" id="inpEmail" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="name@email.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Mobile Number</label>
+                            <input type="tel" id="inpMobile" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="10-digit number">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Field / Course</label>
+                            <input type="text" id="inpField" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="e.g. Java Programming">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Duration</label>
+                            <input type="text" id="inpDuration" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" placeholder="e.g. 6 Weeks">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">Completion Date</label>
+                        <input type="date" id="inpDate" required class="w-full px-4 py-2.5 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-blue-50/30">
+                        <p class="text-[10px] text-blue-600 mt-1.5 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info"></i> Day, Month & Year are calculated automatically.
+                        </p>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="btnSave" class="w-full py-3 brand-gradient text-white rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all text-sm font-bold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-save"></i> <span id="btnSaveText">Save Data</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 🔴 PASTE YOUR CERTIFICATE GOOGLE SCRIPT URL HERE
+        // ============================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbyxCkIXjZ-0tds5wrkOkGEEO0mJFCNyqYiMqkejAvDKgLOh-FusO852_r4Hv2NOHgI7/exec";
+
+        let allData = [];
+
+        // 1. Fetch & Render
+        async function fetchData() {
+            const syncIcon = document.getElementById('syncIcon');
+            const syncText = document.getElementById('syncText');
+            syncIcon.classList.add('fa-spin');
+            syncText.innerText = "Syncing...";
+
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                allData = data;
+                renderTable(data);
+                
+                syncIcon.className = "fa-solid fa-check text-green-500";
+                syncText.innerText = "Synced";
+                document.getElementById('status').classList.add('text-green-600', 'bg-green-50');
+                document.getElementById('status').classList.remove('text-red-600', 'bg-red-50');
+            } catch (err) {
+                syncIcon.className = "fa-solid fa-triangle-exclamation text-red-500";
+                syncText.innerText = "Error";
+                document.getElementById('status').classList.add('text-red-600', 'bg-red-50');
+                document.getElementById('status').classList.remove('text-green-600', 'bg-green-50');
+                console.error(err);
+                Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Connection Failed', showConfirmButton: false, timer: 3000 });
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/30 transition-colors border-b border-gray-50 group";
+                
+                // Color Logic for Initial
+                const colors = ['bg-blue-100 text-blue-600', 'bg-purple-100 text-purple-600', 'bg-emerald-100 text-emerald-600', 'bg-orange-100 text-orange-600'];
+                const safeName = item.name || 'Unknown';
+                const colorClass = colors[safeName.length % colors.length];
+
+                // Status Logic
+                const status = (item.status || "Pending").trim();
+                const isReleased = status.toLowerCase() === "released";
+                
+                const statusBadge = isReleased 
+                    ? `<span class="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border border-green-200"><i class="fa-solid fa-check-circle mr-1"></i> Released</span>`
+                    : `<span class="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border border-yellow-200"><i class="fa-solid fa-hourglass-half mr-1"></i> Pending</span>`;
+
+                const safeItemJSON = encodeURIComponent(JSON.stringify(item).replace(/'/g, "\\'"));
+
+                // Dynamic Action Buttons
+                let releaseBtnHtml = '';
+                if(!isReleased) {
+                    releaseBtnHtml = `<button onclick="releaseItem('${safeItemJSON}')" title="Release Certificate" class="h-8 w-8 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-600 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"><i class="fa-solid fa-paper-plane text-xs"></i></button>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full ${colorClass} flex-shrink-0 flex items-center justify-center text-xs font-bold uppercase shadow-sm">
+                                ${safeName.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-900 whitespace-nowrap">${item.name}</div>
+                                <div class="font-mono text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded w-max mt-0.5 border border-gray-200">${item.certId}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        <div class="text-xs text-gray-600 space-y-1">
+                            <div class="flex items-center gap-2 whitespace-nowrap"><i class="fa-regular fa-envelope text-gray-400 w-3"></i> ${item.email}</div>
+                            <div class="flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-phone text-gray-400 w-3"></i> ${item.mobile}</div>
+                        </div>
+                    </td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        <div class="text-sm font-medium text-gray-800 whitespace-nowrap">${item.field}</div>
+                        <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">${item.duration || 'N/A'}</div>
+                    </td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        <div class="text-sm text-gray-700 whitespace-nowrap font-medium">${item.date || '-'} ${item.month || ''}</div>
+                        <div class="text-xs text-gray-400 whitespace-nowrap">${item.year || '-'}, ${item.dayName || ''}</div>
+                    </td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 text-center">
+                        <div class="flex justify-center gap-2">
+                            ${releaseBtnHtml}
+                            <button onclick="editItem('${safeItemJSON}')" title="Edit" class="h-8 w-8 rounded-lg bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"><i class="fa-solid fa-pen text-xs"></i></button>
+                            <button onclick="deleteItem(${item.rowIndex})" title="Delete" class="h-8 w-8 rounded-lg bg-white border border-gray-200 text-red-500 hover:bg-red-500 hover:text-white transition shadow-sm flex items-center justify-center active:scale-95"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 2. Search Logic
+        function filterData() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allData.filter(item => 
+                (item.certId && item.certId.toLowerCase().includes(q)) || 
+                (item.mobile && item.mobile.includes(q)) || 
+                (item.name && item.name.toLowerCase().includes(q))
+            );
+            renderTable(filtered);
+        }
+
+        // 3. Smart ID Generator
+        function generateSmartId() {
+            const today = new Date();
+            const yearShort = String(today.getFullYear()).slice(-2);
+            const prefix = `${yearShort}GYANBIT`;
+
+            const currentYearIds = allData
+                .map(item => item.certId)
+                .filter(id => id && id.startsWith(prefix));
+
+            if (currentYearIds.length === 0) {
+                return `${prefix}0001`;
+            } else {
+                const maxNum = Math.max(...currentYearIds.map(id => parseInt(id.slice(-4)) || 0));
+                return `${prefix}${String(maxNum + 1).padStart(4, '0')}`;
+            }
+        }
+
+        // 4. Form Submit
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+            btn.disabled = true;
+
+            // Calculate Date Parts
+            const dateInput = document.getElementById('inpDate').value;
+            let dayName = "", month = "", dateNum = "", year = "";
+            
+            if (dateInput) {
+                const dateVal = new Date(dateInput);
+                dayName = dateVal.toLocaleDateString('en-US', { weekday: 'long' });
+                month = dateVal.toLocaleDateString('en-US', { month: 'long' });
+                dateNum = dateVal.getDate();
+                year = dateVal.getFullYear();
+            }
+
+            // Determine if we are releasing
+            const isReleasingFlag = document.getElementById('isReleasingFlag').value === "true";
+            const finalStatus = isReleasingFlag ? "Released" : document.getElementById('inpStatus').value;
+
+            const payload = {
+                action: document.getElementById('rowIndex').value ? "update" : "create",
+                rowIndex: document.getElementById('rowIndex').value,
+                certId: document.getElementById('inpId').value,
+                name: document.getElementById('inpName').value,
+                email: document.getElementById('inpEmail').value,
+                mobile: document.getElementById('inpMobile').value,
+                field: document.getElementById('inpField').value,
+                duration: document.getElementById('inpDuration').value,
+                dayName, month, date: dateNum, year,
+                status: finalStatus
+            };
+
+            try {
+                // Using mode 'no-cors' to prevent blocking, relying on successful execution
+                await fetch(API_URL, { 
+                    method: "POST", 
+                    mode: "no-cors",
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload) 
+                });
+                closeModal();
+                
+                if (isReleasingFlag) {
+                    Swal.fire({ title: 'Certificate Released! 🎉', text: 'The data has been finalized and status updated.', icon: 'success', timer: 2500, showConfirmButton: false });
+                } else {
+                    Swal.fire({ toast: true, position: 'bottom', icon: 'success', title: 'Record Saved!', showConfirmButton: false, timer: 2000 });
+                }
+                
+                // Slight delay to allow Google Sheets to process
+                setTimeout(fetchData, 1000);
+            } catch (err) {
+                Swal.fire("Error", "Could not save data.", "error");
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        // 5. Action Helpers
+        function releaseItem(encodedItem) {
+            const item = JSON.parse(decodeURIComponent(encodedItem));
+            openModal(true); // Open modal in Release mode
+            
+            document.getElementById('modalTitle').innerText = "Release Certificate";
+            document.getElementById('modalTitle').className = "text-lg font-bold text-green-700";
+            document.getElementById('btnSaveText').innerText = "Release Certificate";
+            
+            // Auto-fill today's date for release if missing/old
+            document.getElementById('inpDate').valueAsDate = new Date();
+            
+            populateForm(item);
+        }
+
+        function editItem(encodedItem) {
+            const item = JSON.parse(decodeURIComponent(encodedItem));
+            openModal(false); // Open modal in Edit mode
+            
+            document.getElementById('modalTitle').innerText = "Edit Record";
+            document.getElementById('modalTitle').className = "text-lg font-bold text-gray-900";
+            document.getElementById('btnSaveText').innerText = "Save Data";
+            
+            populateForm(item);
+        }
+
+        function populateForm(item) {
+            document.getElementById('rowIndex').value = item.rowIndex;
+            document.getElementById('inpStatus').value = item.status || "Pending";
+            
+            document.getElementById('inpId').value = item.certId;
+            document.getElementById('inpName').value = item.name;
+            document.getElementById('inpEmail').value = item.email;
+            document.getElementById('inpMobile').value = item.mobile;
+            document.getElementById('inpField').value = item.field;
+            
+            // Handle default 'Standard' duration from enrollments
+            let dur = item.duration || '';
+            if(dur.toLowerCase() === 'standard' && document.getElementById('isReleasingFlag').value === "true") {
+                dur = ''; // Force admin to enter real duration on release
+            }
+            document.getElementById('inpDuration').value = dur;
+
+            // Date Parser
+            if(item.month && item.date && item.year) {
+                const monthMap = { "January":"01", "February":"02", "March":"03", "April":"04", "May":"05", "June":"06", "July":"07", "August":"08", "September":"09", "October":"10", "November":"11", "December":"12" };
+                const m = monthMap[item.month] || "01";
+                const d = String(item.date).padStart(2, '0');
+                document.getElementById('inpDate').value = `${item.year}-${m}-${d}`;
+            }
+        }
+
+        function deleteItem(rowIndex) {
+            Swal.fire({
+                title: 'Are you sure?', text: "Delete this record?", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Delete'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    try {
+                        await fetch(API_URL, { 
+                            method: "POST", 
+                            mode: "no-cors",
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({ action: "delete", rowIndex }) 
+                        });
+                        setTimeout(fetchData, 1000);
+                        Swal.fire({ toast: true, position: 'bottom', icon: 'success', title: 'Deleted', showConfirmButton: false, timer: 2000 });
+                    } catch (e) {
+                        Swal.fire("Error", "Deletion failed.", "error");
+                    }
+                }
+            })
+        }
+
+        // 6. UI Toggles
+        const modal = document.getElementById('modal');
+        
+        function openModal(isReleasing = false) {
+            document.getElementById('isReleasingFlag').value = isReleasing ? "true" : "false";
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('active'), 10);
+            
+            if(!document.getElementById('rowIndex').value) {
+                // If opening empty (Add New Record)
+                document.getElementById('modalTitle').innerText = "Add Record";
+                document.getElementById('modalTitle').className = "text-lg font-bold text-gray-900";
+                document.getElementById('btnSaveText').innerText = "Save Data";
+                
+                document.getElementById('certForm').reset();
+                document.getElementById('rowIndex').value = "";
+                document.getElementById('inpStatus').value = "Pending";
+                document.getElementById('inpDate').valueAsDate = new Date();
+                document.getElementById('inpId').value = generateSmartId();
+            }
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('rowIndex').value = ""; // Clear on close
+            }, 300);
+        }
+
+        // Initialize
+        fetchData();
+    </script>
+</body>
+</html>

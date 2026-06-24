@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Inbox | Gyanbit Pvt. Ltd.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.95);
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: var(--bg); 
+            padding: 40px; 
+            display: none; /* Security hidden */
+            min-height: 100vh;
+            background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .container { 
+            max-width: 1300px; 
+            margin: 0 auto; 
+            background: var(--glass); 
+            padding: 30px; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            border: 1px solid rgba(255,255,255,0.5);
+            animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* --- RESPONSIVE HEADER LAYOUT --- */
+        .header {
+            display: flex;
+            flex-wrap: wrap; /* Prevents overlap by wrapping items */
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        /* 1. Title stays on the left */
+        h1 { 
+            color: #1e293b; 
+            font-size: 24px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            font-weight: 600;
+            margin: 0;
+            white-space: nowrap;
+            flex-shrink: 0; /* Prevents title from shrinking */
+        }
+
+        /* 2. Search Box Wrapper (Centers the search bar) */
+        .search-wrapper {
+            flex-grow: 1; /* Takes up all available middle space */
+            display: flex;
+            justify-content: center; /* Centers input inside the wrapper */
+            min-width: 250px; /* Ensures it doesn't get crushed */
+        }
+
+        .search-box {
+            position: relative;
+            width: 100%;
+            max-width: 450px; /* Limits width so it doesn't look huge */
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 50px;
+            outline: none;
+            transition: 0.3s;
+            font-family: inherit;
+            font-size: 14px;
+            background: #f8fafc;
+        }
+        .search-box input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+
+        /* 3. Button Group (Stays on the right) */
+        .btn-group { 
+            display: flex; 
+            gap: 10px; 
+            flex-shrink: 0; 
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 850px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            h1 { justify-content: center; } /* Center Title */
+            .search-wrapper { order: 2; width: 100%; } /* Search moves below title */
+            .search-box { max-width: 100%; } /* Search takes full width */
+            .btn-group { order: 3; justify-content: center; } /* Buttons at bottom */
+        }
+
+        /* TABLE STYLING */
+        .table-container { 
+            overflow-x: auto; 
+            max-height: 70vh; 
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            min-width: 1000px; 
+        }
+        
+        thead { 
+            background: var(--primary); 
+            color: white; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+        }
+        
+        th { 
+            padding: 18px 15px; 
+            text-align: left; 
+            font-weight: 500; 
+            font-size: 13px; 
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        td { 
+            padding: 15px; 
+            border-bottom: 1px solid #f1f5f9; 
+            font-size: 14px; 
+            color: #334155;
+            background: white;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.4s ease forwards;
+        }
+        tbody tr:hover td { background: #f8fafc; }
+
+        /* BADGES */
+        .status-select { 
+            padding: 6px 12px; 
+            border-radius: 50px; 
+            border: none; 
+            font-size: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: 0.3s;
+            -webkit-appearance: none;
+            text-align: center;
+        }
+        .status-open { background: #fee2e2; color: #b91c1c; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2); }
+        .status-closed { background: #dcfce7; color: #15803d; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.2); }
+
+        /* BUTTONS */
+        .btn { 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: 500; 
+            transition: 0.2s; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-decoration: none; 
+            white-space: nowrap;
+        }
+        .btn-back { background: #e2e8f0; color: #475569; }
+        .btn-back:hover { background: #cbd5e1; }
+        .btn-refresh { background: var(--primary); color: white; }
+        .btn-refresh:hover { background: #4f46e5; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        
+        .btn-icon {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-delete { background: #fee2e2; color: #ef4444; }
+        .btn-delete:hover { background: #ef4444; color: white; transform: scale(1.1); }
+
+        .loader-container { text-align: center; padding: 50px; color: #64748b; }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;
+        }
+
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeToast { 0% { bottom: 0; opacity: 0; } 10% { bottom: 30px; opacity: 1; } 90% { bottom: 30px; opacity: 1; } 100% { bottom: 0; opacity: 0; } }
+
+        #toast { 
+            visibility: hidden; min-width: 250px; background: #1e293b; color: #fff; text-align: center; 
+            border-radius: 50px; padding: 16px; position: fixed; bottom: 30px; left: 50%; 
+            transform: translateX(-50%); z-index: 1000; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        #toast.show { visibility: visible; animation: fadeToast 3s forwards; }
+    </style>
+
+    <script>
+        // --- SECURITY CHECK ---
+        (function() {
+            const user = localStorage.getItem('gyanbit_user');
+            const role = localStorage.getItem('gyanbit_role') || '';
+            const allowed = ['admin', 'director', 'hr', 'manager', 'employee', 'employe'];
+            
+            if (!user) { window.location.href = 'login.html'; }
+            else if (!allowed.some(r => role.toLowerCase().includes(r))) {
+                alert("ACCESS DENIED: Staff Only Page.");
+                window.location.href = 'dashboard.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        
+        <h1>
+            <i class="fas fa-inbox" style="color:var(--primary);"></i> 
+            Request Inbox
+            <span id="count-badge" style="font-size:12px; background:#eff6ff; padding:4px 10px; border-radius:12px; color:var(--primary); margin-left:5px;">0</span>
+        </h1>
+        
+        <div class="search-wrapper">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search Email or Mobile...">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="dashboard.html" class="btn btn-back"><i class="fas fa-arrow-left"></i> Back</a>
+            <button class="btn btn-refresh" onclick="fetchContacts()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+    </div>
+    <div class="table-container">
+        <table id="contactTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Contact Info</th>
+                    <th>Subject</th>
+                    <th>Location</th>
+                    <th>Message</th>
+                    <th style="text-align:center;">Status</th>
+                    <th style="text-align:center;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+        <div id="loader" class="loader-container">
+            <div class="spinner"></div>
+            <p>Fetching requests...</p>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // **********************************************
+    // LATEST SCRIPT URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyepLTQR48T9rhkGC2103k91ArDTM_x24wv464DPggKNRsazN7OJIif4_pAk4a5aOl8dA/exec';
+    // **********************************************
+
+    let globalData = []; 
+
+    window.onload = function() {
+        document.body.style.display = 'block'; 
+        fetchContacts();
+    }
+
+    function fetchContacts() {
+        const tbody = document.getElementById('tableBody');
+        const loader = document.getElementById('loader');
+        
+        tbody.innerHTML = '';
+        loader.style.display = 'block';
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'read_contacts' })
+        })
+        .then(res => res.json())
+        .then(response => {
+            loader.style.display = 'none';
+            if(response.status === 'success') {
+                globalData = response.data; 
+                renderTable(globalData);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:red;">Failed to load data.</td></tr>';
+            }
+        })
+        .catch(err => {
+            loader.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:red;">Connection Error. Check internet.</td></tr>';
+        });
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        if(!data || data.length === 0) { 
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">No requests match your search.</td></tr>'; 
+            document.getElementById('count-badge').innerText = '0';
+            return; 
+        }
+
+        data.sort((a, b) => {
+            const statusA = (a[10] || 'Open').toLowerCase();
+            const statusB = (b[10] || 'Open').toLowerCase();
+            if (statusA === 'open' && statusB !== 'open') return -1;
+            if (statusA !== 'open' && statusB === 'open') return 1;
+            return 0;
+        });
+
+        document.getElementById('count-badge').innerText = data.length;
+
+        data.forEach((row, index) => {
+            let date = row[0] ? new Date(row[0]).toLocaleDateString() : '-';
+            let location = `${row[6] || ''}, ${row[5] || ''}`; 
+            let status = row[10] || 'Open';
+            let statusClass = status.toLowerCase() === 'closed' ? 'status-closed' : 'status-open';
+            
+            let delay = index * 0.05; 
+
+            let tr = document.createElement('tr');
+            tr.style.animationDelay = `${delay}s`;
+            
+            tr.innerHTML = `
+                <td><span style="font-weight:600; color:#64748b;">${date}</span></td>
+                <td>
+                    <div style="font-weight:600; color:#1e293b;">${row[1]}</div>
+                    <div style="font-size:11px; color:#94a3b8;">${row[4] || ''}</div>
+                </td>
+                <td>
+                    <div style="font-size:12px;"><i class="fas fa-envelope" style="color:#cbd5e1;"></i> ${row[2]}</div>
+                    <div style="font-size:12px;"><i class="fas fa-phone" style="color:#cbd5e1;"></i> ${row[3]}</div>
+                </td>
+                <td style="font-weight:500; color:#475569;">${row[8] || 'No Subject'}</td>
+                <td><small>${location}</small></td>
+                <td title="${row[9]}" style="max-width:200px; overflow:hidden; text-overflow:ellipsis;">
+                    ${row[9] ? row[9].substring(0, 40) + '...' : ''}
+                </td>
+                <td style="text-align:center;">
+                    <select class="status-select ${statusClass}" onchange="updateStatus(this, '${row[2]}')">
+                        <option value="Open" ${status === 'Open' ? 'selected' : ''}>Open</option>
+                        <option value="Closed" ${status === 'Closed' ? 'selected' : ''}>Closed</option>
+                    </select>
+                </td>
+                <td style="text-align:center;">
+                    <button class="btn-icon btn-delete" onclick="deleteRow(this, '${row[2]}')" title="Delete">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterTable() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        
+        if (query === "") {
+            renderTable(globalData); 
+            return;
+        }
+
+        const filtered = globalData.filter(row => {
+            const email = (row[2] || "").toString().toLowerCase();
+            const mobile = (row[3] || "").toString().toLowerCase();
+            const name = (row[1] || "").toString().toLowerCase();
+            
+            return email.includes(query) || mobile.includes(query) || name.includes(query);
+        });
+
+        renderTable(filtered);
+    }
+
+    function updateStatus(selectElem, email) {
+        let newStatus = selectElem.value;
+        selectElem.className = `status-select ${newStatus === 'Closed' ? 'status-closed' : 'status-open'}`;
+
+        fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'update_contact', originalEmail: email, status: newStatus }) 
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') showToast("Status Updated Successfully");
+            else showToast("Update Failed");
+        });
+    }
+
+    function deleteRow(btn, email) {
+        if(!confirm("Are you sure you want to delete this request?")) return;
+        
+        let row = btn.closest('tr');
+        row.style.opacity = "0.5"; 
+
+        fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'delete_contact', email: email }) 
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') { 
+                showToast("Request Deleted"); 
+                globalData = globalData.filter(item => item[2] !== email);
+                renderTable(globalData);
+            } else { 
+                showToast("Delete Failed"); 
+                row.style.opacity = "1";
+            }
+        });
+    }
+
+    function showToast(msg) {
+        let x = document.getElementById("toast");
+        x.className = "show"; x.innerText = msg;
+        setTimeout(() => x.className = x.className.replace("show", ""), 3000);
+    }
+</script>
+</body>
+</html>

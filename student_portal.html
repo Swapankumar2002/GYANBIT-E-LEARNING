@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Certificate | Gyanbit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap');
+
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #10b981; --error: #ef4444; --warning: #f59e0b; }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+
+        .brand { font-family: 'Exo 2'; font-size: 32px; font-weight: 700; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        
+        .main-card { 
+            background: white; width: 100%; max-width: 600px; 
+            padding: 40px; border-radius: 20px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); 
+            text-align: center;
+        }
+
+        h2 { color: var(--text); margin-bottom: 10px; }
+        p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
+
+        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
+        .input-group input { 
+            width: 100%; padding: 15px; border: 2px solid #e2e8f0; 
+            border-radius: 12px; font-size: 16px; outline: none; transition: 0.3s; 
+        }
+        .input-group input:focus { border-color: var(--primary); }
+
+        .btn { 
+            width: 100%; padding: 15px; border: none; border-radius: 12px; 
+            background: var(--primary); color: white; font-size: 16px; 
+            font-weight: 600; cursor: pointer; transition: 0.3s; 
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* RESULT LIST SECTION */
+        #result-area { margin-top: 30px; display: none; text-align: left; }
+        
+        .cert-item {
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: 0.2s;
+            background: #fdfdfd;
+        }
+        .cert-item:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        .cert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .course-title { font-weight: 700; color: var(--text); font-size: 16px; }
+        
+        .status-badge { 
+            padding: 4px 10px; border-radius: 50px; 
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+        }
+        .status-approved { background: #ecfdf5; color: var(--success); }
+        .status-pending { background: #fff7ed; color: var(--warning); }
+        .status-rejected { background: #fef2f2; color: var(--error); }
+
+        /* ADMIN MESSAGE BOX */
+        .admin-msg {
+            font-size: 13px;
+            background: #f8fafc;
+            border-left: 4px solid #cbd5e1;
+            padding: 10px 15px;
+            margin-top: 15px;
+            color: #475569;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        .download-btn-sm { 
+            padding: 8px 15px; background: var(--success); color: white; 
+            border: none; border-radius: 6px; font-size: 12px; font-weight: 600; 
+            cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+            margin-top: 10px;
+        }
+        .download-btn-sm:hover { background: #059669; }
+
+        .loader { display: none; margin-top: 10px; color: var(--primary); }
+        
+        #qrcode { display: none; }
+        .hidden-assets { display: none; }
+        
+        .not-found {
+            text-align: center; color: var(--error); background: #fef2f2; 
+            padding: 15px; border-radius: 10px; font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="brand">
+        <i class="fas fa-graduation-cap"></i> Gyanbit
+    </div>
+
+    <div class="main-card">
+        <h2>Verify Certificate</h2>
+        <p>Enter your registered mobile number to find your certificate(s).</p>
+
+        <div class="input-group">
+            <label>Mobile Number</label>
+            <input type="number" id="searchMobile" placeholder="e.g. 9876543210">
+        </div>
+
+        <button class="btn" onclick="searchCertificate()" id="searchBtn">
+            <i class="fas fa-search"></i> Search Record
+        </button>
+        
+        <div class="loader" id="loader">
+            <i class="fas fa-spinner fa-spin"></i> Checking records...
+        </div>
+
+        <div id="result-area"></div>
+    </div>
+
+    <div class="hidden-assets">
+        <img id="imgStamp" src="stamp.png" alt="Stamp" crossorigin="anonymous">
+        <img id="imgSign" src="swapsign.png" alt="Signature" crossorigin="anonymous">
+    </div>
+
+    <div id="qrcode"></div>
+
+    <script>
+        // --- PASTE YOUR GOOGLE APPS SCRIPT URL HERE ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbzwSISy88DHdS0jxu0qiQV-C5Gdb2sNvz6szUyqrTj7RIqZxZIvecvHY0UOzxHqHeaY/exec";
+
+        function searchCertificate() {
+            const mobile = document.getElementById('searchMobile').value.trim();
+            const btn = document.getElementById('searchBtn');
+            const loader = document.getElementById('loader');
+            const resultArea = document.getElementById('result-area');
+
+            if (!mobile) { alert("Please enter a mobile number"); return; }
+
+            btn.disabled = true;
+            loader.style.display = 'block';
+            resultArea.style.display = 'none';
+            resultArea.innerHTML = ''; 
+
+            fetch(API_URL + "?action=read")
+            .then(res => res.json())
+            .then(response => {
+                const data = response.data;
+                const records = data.filter(row => String(row.mobile) === String(mobile));
+
+                if (records.length > 0) {
+                    showResults(records);
+                } else {
+                    showError("No enrollment found for this number.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showError("Connection error. Please try again.");
+            })
+            .finally(() => {
+                btn.disabled = false;
+                loader.style.display = 'none';
+            });
+        }
+
+        function showResults(records) {
+            const resultArea = document.getElementById('result-area');
+            let html = `<div style="text-align:left; font-size:12px; color:#64748b; margin-bottom:10px;">Found ${records.length} course(s)</div>`;
+
+            records.forEach(student => {
+                // Get Status and normalize
+                const rawStatus = student.status || 'Pending';
+                const status = rawStatus.toLowerCase().trim();
+                
+                // Get Message directly from sheet
+                const adminMsg = student.adminMessage || ""; 
+
+                let badgeClass = '';
+                let statusText = rawStatus.toUpperCase();
+                let contentHtml = '';
+
+                // --- LOGIC FOR REJECTION/APPROVAL ---
+                
+                if (status.includes('approv')) { 
+                    // 1. APPROVED
+                    badgeClass = 'status-approved';
+                    statusText = 'APPROVED';
+                    contentHtml = `
+                        <button class="download-btn-sm" onclick="generatePDF('${student.name}', '${student.course}')">
+                            <i class="fas fa-file-pdf"></i> Download Certificate
+                        </button>
+                    `;
+                } else if (status.includes('reject')) {
+                    // 2. REJECTED
+                    badgeClass = 'status-rejected';
+                    statusText = 'REJECTED';
+                    // Show EXACTLY what is in the sheet. If empty, show nothing.
+                    if(adminMsg) {
+                        contentHtml = `
+                            <div class="admin-msg" style="border-left-color: #ef4444; background: #fff1f2; color: #b91c1c;">
+                                <strong style="display:block; margin-bottom:4px;"><i class="fas fa-exclamation-circle"></i> Reason:</strong>
+                                ${adminMsg}
+                            </div>
+                        `;
+                    }
+                } else {
+                    // 3. PENDING (Updated Logic)
+                    badgeClass = 'status-pending';
+                    statusText = 'PENDING';
+                    
+                    // Always show "Pending for Authorize Approval"
+                    contentHtml = `
+                        <div class="admin-msg" style="border-left-color: #f59e0b; background: #fffbeb; color: #b45309;">
+                            <strong style="display:block; margin-bottom:4px;"><i class="fas fa-hourglass-half"></i> Status:</strong>
+                            Pending for Authorize Approval
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="cert-item">
+                        <div class="cert-header">
+                            <div class="course-title">${student.course}</div>
+                            <span class="status-badge ${badgeClass}">${statusText}</span>
+                        </div>
+                        <div style="font-size:13px; color:#64748b;">
+                            Student: <b>${student.name}</b>
+                        </div>
+                        ${contentHtml}
+                    </div>
+                `;
+            });
+
+            resultArea.innerHTML = html;
+            resultArea.style.display = 'block';
+        }
+
+        function showError(msg) {
+            const resultArea = document.getElementById('result-area');
+            resultArea.innerHTML = `<div class="not-found"><i class="fas fa-exclamation-circle"></i> ${msg}</div>`;
+            resultArea.style.display = 'block';
+        }
+
+        // --- PDF GENERATION LOGIC ---
+        function generatePDF(name, course) {
+            const uniqueID = "GB-" + Math.floor(100000 + Math.random() * 900000); 
+            const issueDate = new Date().toLocaleDateString();
+            const qrData = `CERTIFICATE VALIDATION\nID: ${uniqueID}\nName: ${name}\nCourse: ${course}\nDate: ${issueDate}\nVerified by Gyanbit Pvt Ltd`;
+
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = ""; 
+            
+            new QRCode(qrContainer, { text: qrData, width: 100, height: 100 });
+
+            setTimeout(() => {
+                const canvas = qrContainer.querySelector('canvas');
+                const qrImgData = canvas.toDataURL("image/png");
+                const stampEl = document.getElementById('imgStamp');
+                const signEl = document.getElementById('imgSign');
+                createPDFDocument(name, course, qrImgData, stampEl, signEl);
+            }, 500);
+        }
+
+        function createPDFDocument(name, course, qrImgData, stampEl, signEl) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            
+            const width = doc.internal.pageSize.getWidth();
+            const height = doc.internal.pageSize.getHeight();
+            const goldColor = "#C5A059"; 
+            const blackColor = "#000000";
+            const darkText = "#333333";
+
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, width, height, 'F');
+
+            doc.setDrawColor(goldColor);
+            doc.setLineWidth(1.5);
+            doc.rect(10, 10, width - 20, height - 20); 
+            doc.setLineWidth(0.5);
+            doc.rect(13, 13, width - 26, height - 26);
+
+            doc.setLineWidth(1);
+            doc.line(10, 25, 25, 10); doc.line(10, 40, 40, 10);
+            doc.line(width-10, 25, width-25, 10); doc.line(width-10, 40, width-40, 10);
+            doc.line(10, height-25, 25, height-10); doc.line(10, height-40, 40, height-10);
+            doc.line(width-10, height-25, width-25, height-10); doc.line(width-10, height-40, width-40, height-10);
+
+            const centerX = width / 2;
+            doc.setFont("times", "normal");
+            doc.setFontSize(16);
+            doc.setTextColor(darkText);
+            doc.text("GYANBIT PVT. LTD.", centerX, 35, { align: "center" });
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(48);
+            doc.setTextColor(blackColor);
+            doc.text("CERTIFICATE", centerX, 55, { align: "center" });
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(18);
+            doc.setTextColor(goldColor);
+            doc.setCharSpace(2);
+            doc.text("OF COMPLETION", centerX, 65, { align: "center" });
+            doc.setCharSpace(0); 
+
+            doc.setDrawColor(goldColor);
+            doc.setLineWidth(0.5);
+            doc.line(centerX - 40, 70, centerX + 40, 70);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(darkText);
+            doc.text("THIS CERTIFICATE IS AWARDED TO", centerX, 85, { align: "center" });
+
+            doc.setFont("times", "italic");
+            doc.setFontSize(40);
+            doc.setTextColor(blackColor);
+            doc.text(name, centerX, 105, { align: "center" });
+
+            doc.setDrawColor(goldColor);
+            doc.line(centerX - 60, 110, centerX + 60, 110);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(darkText);
+            doc.text("FOR SUCCESSFULLY COMPLETING THE COURSE OF", centerX, 125, { align: "center" });
+
+            doc.setFont("times", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(blackColor);
+            doc.text(`"${course}"`, centerX, 138, { align: "center" });
+
+            const bottomY = 175;
+            const today = new Date().toLocaleDateString();
+            doc.setFont("times", "italic");
+            doc.setFontSize(14);
+            doc.setTextColor(blackColor);
+            doc.text(today, 50, bottomY, { align: "center" });
+            
+            doc.setDrawColor(goldColor);
+            doc.line(30, bottomY + 2, 70, bottomY + 2); 
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(darkText);
+            doc.text("DATE", 50, bottomY + 8, { align: "center" });
+
+            try {
+                doc.addImage(stampEl, 'PNG', centerX - 12.5, bottomY - 15, 25, 25);
+            } catch(e) {
+                console.warn("Stamp error:", e);
+            }
+
+            try {
+                doc.addImage(signEl, 'PNG', width - 70, bottomY - 10, 40, 15);
+            } catch(e) {
+                 console.warn("Sign error:", e);
+            }
+
+            doc.setDrawColor(goldColor);
+            doc.line(width - 70, bottomY + 2, width - 30, bottomY + 2); 
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(darkText);
+            doc.text("SWAPAN KUMAR MONDAL", width - 50, bottomY + 8, { align: "center" });
+
+            doc.addImage(qrImgData, 'PNG', width - 40, 40, 20, 20);
+            doc.save(`${name}_Certificate.pdf`);
+        }
+    </script>
+</body>
+</html>

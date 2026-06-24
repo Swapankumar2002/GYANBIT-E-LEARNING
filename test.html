@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificate Verification | Gyanbit</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&family=Roboto:wght@300;400;500&display=swap');
+  
+  :root { 
+    --primary: #2c2c2c; 
+    --gold: #d4af37; 
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Poppins', sans-serif;
+    /* Removed static gradient, added canvas background below */
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 40px 20px;
+    overflow-x: hidden;
+    background-color: #f0f4f8;
+  }
+
+  /* --- CANVAS BACKGROUND --- */
+  #canvas-bg {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1; 
+      background: radial-gradient(circle at 50% 50%, #ffffff 0%, #eef2ff 100%);
+  }
+
+  /* --- SEARCH BOX (GLASSMORPHISM) --- */
+  .search-container { 
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    padding: 40px 30px; 
+    border-radius: 20px; 
+    box-shadow: var(--shadow); 
+    width: 100%; max-width: 500px; 
+    text-align: center; margin-bottom: 40px; 
+    animation: slideDown 0.8s ease-out;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .search-container h2 { margin-bottom: 10px; color: #1e1b4b; font-weight: 600; }
+
+  .input-group { position: relative; margin-bottom: 20px; }
+  .input-group input { 
+    width: 100%; padding: 15px 20px; 
+    border: 2px solid #e5e7eb; border-radius: 50px; 
+    font-size: 1rem; outline: none; transition: 0.3s; 
+    font-family: 'Poppins', sans-serif;
+    background: rgba(255,255,255,0.9);
+  }
+  .input-group input:focus { border-color: #1e1b4b; box-shadow: 0 0 10px rgba(30, 27, 75, 0.1); }
+
+  .btn-search { 
+    background: linear-gradient(45deg, #1e1b4b, #312e81);
+    color: white; border: none; padding: 15px 30px; 
+    border-radius: 50px; font-size: 1rem; font-weight: 600;
+    cursor: pointer; width: 100%; transition: 0.3s; 
+    box-shadow: 0 5px 15px rgba(30, 27, 75, 0.3);
+  }
+  .btn-search:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(30, 27, 75, 0.4); }
+  
+  /* Modern Spinner */
+  .spinner { 
+    display: none; margin: 20px auto; 
+    width: 40px; height: 40px; 
+    border: 4px solid rgba(0, 0, 0, 0.1); 
+    border-left-color: #1e1b4b; 
+    border-radius: 50%; 
+    animation: spin 1s linear infinite; 
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* --- CERTIFICATE LAYOUT --- */
+  #cert-wrapper { 
+    display: none; 
+    margin-bottom: 30px; 
+    animation: fadeInUp 1s ease-out;
+    transform-origin: top center;
+  }
+
+  @media (max-width: 950px) {
+    #cert-wrapper { transform: scale(0.6); margin-bottom: -200px; }
+  }
+  @media (max-width: 600px) {
+    #cert-wrapper { transform: scale(0.38); margin-bottom: -350px; }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(50px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  
+  .certificate {
+    width: 900px; height: 636px;
+    background: #fffdf9; 
+    position: relative; 
+    display: flex; flex-direction: column; justify-content: space-between; 
+    padding: 40px 40px 60px 40px; 
+    color: var(--primary); 
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    overflow: hidden;
+    border-radius: 5px;
+  }
+
+  /* Decorations */
+  .corner-gold-lines { position: absolute; width: 150px; height: 150px; border-top: 2px solid var(--gold); border-right: 2px solid var(--gold); top: 30px; right: 30px; }
+  .corner-gold-lines::before { content:''; position: absolute; top: 10px; right: 10px; width: 120px; height: 120px; border-top: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+  .corner-gold-lines-bottom { position: absolute; width: 150px; height: 150px; border-bottom: 2px solid var(--gold); border-left: 2px solid var(--gold); bottom: 30px; left: 30px; }
+  .corner-gold-lines-bottom::before { content:''; position: absolute; bottom: 10px; left: 10px; width: 120px; height: 120px; border-bottom: 2px solid var(--gold); border-left: 2px solid var(--gold); }
+  .corner-triangle { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 200px 100px; border-color: transparent transparent #925d4f transparent; z-index: 1; }
+  .corner-triangle-light { position: absolute; bottom: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 280px 150px; border-color: transparent transparent #75674b transparent; z-index: 0; }
+  
+  /* QR Code Section */
+  .qr-code { position: absolute; top: 120px; right: 50px; text-align: center; z-index: 5; }
+  .qr-img { width: 90px; height: 90px; border: 1px solid #ddd; padding: 2px; background: white; }
+  .qr-text { color: #d32f2f; font-size: 0.65rem; margin-top: 5px; font-weight: 600; font-family: 'Roboto', sans-serif; }
+
+  /* Content */
+  .cert-content-top {
+      flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 20px;
+  }
+  .cert-header { text-align: center; font-family: 'Playfair Display', serif; font-size: 5rem; letter-spacing: 5px; text-transform: uppercase; color: #222; margin-top: 10px; }
+  .cert-header-line { width: 400px; height: 2px; background: #444; margin: 10px auto; position: relative; }
+  .cert-header-line::after { content: '◆'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #fffdf9; padding: 0 10px; color: #444; font-size: 1.2rem; }
+  .award-text { text-align: center; font-family: 'Roboto', sans-serif; font-size: 1rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 40px; color: #555; }
+  .student-name { text-align: center; font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 700; color: #222; margin: 15px 0 5px 0; text-transform: uppercase; }
+  .name-underline { width: 500px; height: 1px; background: #d4af37; margin: 0 auto 25px auto; }
+  .body-text { text-align: center; width: 85%; margin: 0 auto; font-family: 'Times New Roman', Times, serif; font-size: 1.1rem; line-height: 1.7; color: #444; }
+
+  /* --- UPDATED SIGNATURE ROW (LIFTED & CENTERED) --- */
+  .signatures-row {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; /* Changed from flex-end to center for better balance */
+    padding: 0 60px; 
+    position: relative; 
+    z-index: 2; 
+    width: 100%; 
+    margin-bottom: 50px; /* Lifted up from bottom */
+  }
+  .sig-block { 
+      text-align: center; 
+      width: 200px; 
+      /* Visually lift the side signatures slightly to match the stamp's visual weight */
+      transform: translateY(-10px); 
+  }
+  .sig-line { width: 100%; height: 1px; background: #d4af37; margin-bottom: 5px; }
+  .sig-name { font-weight: 700; font-size: 0.9rem; text-transform: uppercase; font-family: 'Roboto', sans-serif;}
+  .sig-title { font-size: 0.75rem; color: #666; text-transform: uppercase; font-family: 'Roboto', sans-serif;}
+  
+  .real-sig-img { width: 100px; height: auto; display: block; margin: 0 auto -5px auto; }
+
+  /* Center Stamp */
+  .center-stamp-container {
+      position: relative;
+      width: 140px; 
+      height: 130px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+  .real-stamp-img { width: 120px; height: 120px; opacity: 0.9; transform: rotate(-7deg); }
+  .center-sig-img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; z-index: 10; }
+
+  .bottom-contact { position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 0.8rem; color: #6d4c41; z-index: 2; font-family: 'Roboto', sans-serif; }
+  
+  .btn-download { 
+    background: #10b981; 
+    color: white; padding: 15px 40px; 
+    border: none; border-radius: 50px; 
+    font-size: 1.1rem; font-weight: bold;
+    cursor: pointer; margin-top: 30px; display: none; 
+    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+    transition: 0.3s;
+    animation: pulse 2s infinite;
+  }
+  .btn-download:hover { transform: scale(1.05); background: #059669; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  #errorMsg {
+      background: rgba(255,0,0,0.1); color: red; padding: 10px; border-radius: 5px; font-size: 0.9rem; margin-top: 15px; display: none;
+  }
+</style>
+</head>
+<body>
+
+  <canvas id="canvas-bg"></canvas>
+
+  <div class="search-container">
+    <h2><i class="fas fa-graduation-cap"></i> Download Certificate</h2>
+    <p style="color:#666; margin-bottom:20px; font-size:0.9rem;">Enter Mobile, Email, or Certificate ID</p>
+    <div class="input-group">
+        <input type="text" id="searchInput" placeholder="Search details..." onkeypress="if(event.key==='Enter') searchCertificate()">
+    </div>
+    <button class="btn-search" onclick="searchCertificate()">Search Record</button>
+    <div class="spinner" id="loader"></div>
+    <div id="errorMsg"></div>
+  </div>
+
+  <div id="cert-wrapper">
+    <div class="certificate" id="certificate-node">
+      <div class="corner-gold-lines"></div><div class="corner-gold-lines-bottom"></div>
+      <div class="corner-triangle-light"></div><div class="corner-triangle"></div>
+
+      <div class="qr-code">
+        <img id="qr-image" src="" class="qr-img" alt="Scan to Verify">
+        <div class="qr-text">Scan to Verify<br>Credential</div>
+      </div>
+
+      <div class="cert-content-top">
+          <div class="cert-header">Certificate</div>
+          <div class="cert-header-line"></div>
+          <div class="award-text">The following award is given to</div>
+          <div class="student-name" id="c_name">--</div>
+          <div class="name-underline"></div>
+          <div class="body-text">
+            He has demonstrated strong self-motivation and a willingness to learn, actively engaging in
+            day-to-day tasks and project activities with a high level of professionalism throughout the
+            <span style="font-weight:700" id="c_duration">-- Weeks</span> 
+            <span style="font-weight:700" id="c_field">--</span> Internship, 
+            completed on <span style="font-weight:700" id="c_full_date">--</span>.
+          </div>
+      </div>
+
+      <div class="signatures-row">
+        
+        <div class="sig-block">
+          <img src="DHEERAJSIGN.png" class="real-sig-img" alt="Dheeraj Signature">
+          <div class="sig-line"></div>
+          <div class="sig-name">Dheeraj Kumar</div>
+          <div class="sig-title">Managing Director</div>
+        </div>
+        
+        <div class="center-stamp-container">
+           <img src="stamp.png" class="real-stamp-img" alt="Official Stamp">
+           <img src="STAMPSIGN.png" class="center-sig-img" alt="Auth Signature">
+        </div>
+
+        <div class="sig-block">
+          <img src="swapsign.png" class="real-sig-img" alt="Swapan Signature">
+          <div class="sig-line"></div>
+          <div class="sig-name">Swapan Kumar Mondal</div>
+          <div class="sig-title">CEO & Technical Lead</div>
+        </div>
+
+      </div>
+
+      <div class="bottom-contact">
+        helpdesk.gyanbit@gmail.com &nbsp; | &nbsp; <i class="fas fa-globe"></i> gyanbit.netlify.app
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-download" id="downloadBtn" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
+
+<script>
+  // YOUR SCRIPT URL
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGrZG0iO3MbObJQYiF12JuRZIotMyRh_g722pClQhhgkahnJAzkCxo5OJU-yq2mrXe/exec"; 
+
+  // 1. AUTO-RUN IF URL HAS "?verify=ID"
+  window.onload = function() {
+      // Start Particle Animation
+      initParticles(); 
+      animateParticles();
+
+      // Check for verify param
+      const urlParams = new URLSearchParams(window.location.search);
+      const verifyId = urlParams.get('verify');
+      
+      if (verifyId) {
+          document.getElementById('searchInput').value = verifyId;
+          searchCertificate();
+      }
+  };
+
+  function searchCertificate() {
+    const rawInput = document.getElementById('searchInput').value;
+    const input = rawInput.trim().toLowerCase();
+
+    if(!input) return alert("Please enter details.");
+
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('cert-wrapper').style.display = 'none';
+    document.getElementById('downloadBtn').style.display = 'none';
+
+    fetch(SCRIPT_URL + "?action=getAllEnrollments")
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('loader').style.display = 'none';
+
+        if(data.error) { showError("Error: " + data.error); return; }
+        if(data.length === 0) { showError("Database is empty."); return; }
+        
+        const record = data.find(item => {
+            return String(item.certId).trim().toLowerCase() === input || 
+                   String(item.email).trim().toLowerCase() === input || 
+                   String(item.mobile).trim().toLowerCase() === input;
+        });
+
+        if(record) {
+            document.getElementById('c_name').innerText = record.name;
+            document.getElementById('c_field').innerText = record.field;
+            document.getElementById('c_duration').innerText = record.duration;
+            document.getElementById('c_full_date').innerText = `${record.dayName}, ${record.month} ${record.date}, ${record.year}`;
+
+            // --- GENERATE REAL QR CODE ---
+            const baseUrl = window.location.href.split('?')[0];
+            const verifyLink = `${baseUrl}?verify=${record.certId}`;
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verifyLink)}`;
+            document.getElementById('qr-image').src = qrApiUrl;
+
+            document.getElementById('cert-wrapper').style.display = 'block';
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+            
+            // Scroll to certificate
+            setTimeout(() => {
+                document.getElementById('cert-wrapper').scrollIntoView({behavior: "smooth", block: "center"});
+            }, 100);
+            
+        } else {
+            showError("No record found for: " + rawInput);
+        }
+    })
+    .catch(e => {
+        document.getElementById('loader').style.display = 'none';
+        showError("Connection Failed. Check internet.");
+    });
+  }
+
+  function showError(msg) {
+      document.getElementById('errorMsg').innerText = msg;
+      document.getElementById('errorMsg').style.display = 'block';
+  }
+
+  function downloadPDF() {
+    const element = document.getElementById('certificate-node');
+    const opt = {
+      margin: 0,
+      filename: 'Gyanbit_Certificate.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+      jsPDF: { unit: 'px', format: [900, 636], orientation: 'landscape' }
+    };
+    
+    // Temporarily remove any visual scaling transform so the PDF prints full resolution
+    const wrapper = document.getElementById('cert-wrapper');
+    const originalTransform = wrapper.style.transform;
+    wrapper.style.transform = 'none';
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        wrapper.style.transform = originalTransform;
+    });
+  }
+
+  // --- PARTICLE BACKGROUND SCRIPT (Interactive) ---
+  const canvas = document.getElementById('canvas-bg');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let particles = [];
+  // Colors: Blue, Purple, Cyan (Tech Theme)
+  const colors = ['rgba(59, 130, 246, 0.7)', 'rgba(139, 92, 246, 0.7)', 'rgba(6, 182, 212, 0.7)']; 
+  let mouse = { x: null, y: null, radius: 250 };
+
+  window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+  window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 4 + 1;
+      this.baseX = this.x; this.baseY = this.y;
+      this.density = (Math.random() * 30) + 1;
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+      this.speedX = Math.random() * 1 - 0.5;
+      this.speedY = Math.random() * 1 - 0.5;
+    }
+    update() {
+      this.x += this.speedX; this.y += this.speedY;
+      if(this.x > canvas.width || this.x < 0) this.speedX *= -1;
+      if(this.y > canvas.height || this.y < 0) this.speedY *= -1;
+
+      // Mouse Interaction
+      let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+      let distance = Math.sqrt(dx*dx + dy*dy);
+      if (distance < mouse.radius && mouse.x != null) {
+          const force = (mouse.radius - distance) / mouse.radius;
+          const directionX = (dx / distance) * force * this.density;
+          const directionY = (dy / distance) * force * this.density;
+          this.x -= directionX; this.y -= directionY;
+      }
+    }
+    draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+  }
+
+  function initParticles() { particles = []; for (let i = 0; i < 90; i++) particles.push(new Particle()); }
+  
+  function animateParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update(); particles[i].draw();
+      // Connections
+      for (let j = i; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x; const dy = particles[i].y - particles[j].y;
+          const distance = Math.sqrt(dx*dx + dy*dy);
+          if (distance < 130) {
+              ctx.beginPath(); ctx.strokeStyle = particles[i].color.replace('0.7', '0.15'); 
+              ctx.lineWidth = 1; ctx.moveTo(particles[i].x, particles[i].y); 
+              ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke();
+          }
+      }
+    }
+    requestAnimationFrame(animateParticles);
+  }
+</script>
+
+</body>
+</html>

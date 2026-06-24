@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyanbit | Master Admin Portal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #3b82f6;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #1f2937;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-main);
+            padding: 2rem;
+            position: relative; overflow-x: hidden;
+        }
+
+        /* Animated Bubbles */
+        .bubbles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .bubble {
+            position: absolute; bottom: -100px; background: rgba(255, 255, 255, 0.6); border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.8); backdrop-filter: blur(2px); animation: rise infinite ease-in;
+        }
+        .bubble:nth-child(1) { width: 40px; height: 40px; left: 10%; animation-duration: 8s; }
+        .bubble:nth-child(2) { width: 60px; height: 60px; left: 50%; animation-duration: 12s; }
+        .bubble:nth-child(3) { width: 25px; height: 25px; left: 80%; animation-duration: 6s; }
+        @keyframes rise { 0% { transform: translateY(0) scale(1); opacity: 0.8; } 100% { transform: translateY(-120vh) scale(1.2); opacity: 0; } }
+
+        /* Layout */
+        .container { max-width: 1400px; margin: 0 auto; animation: fadeIn 0.6s ease-out; }
+        
+        .header-panel {
+            background: var(--glass-bg); padding: 1.5rem 2rem; border-radius: 16px; box-shadow: var(--shadow);
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .header-panel h1 { color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; gap: 10px; }
+        
+        .controls { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        .search-box { position: relative; width: 300px; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        .search-box input { width: 100%; padding: 10px 15px 10px 40px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; transition: 0.3s; }
+        .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+        
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; border: none; display: flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--secondary); transform: translateY(-2px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; transform: translateY(-2px); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn-action { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; }
+
+        /* Table Area */
+        .table-panel { background: var(--glass-bg); padding: 2rem; border-radius: 16px; box-shadow: var(--shadow); }
+        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 65vh; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; background: white; }
+        th { padding: 15px; text-align: left; background: #f8fafc; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .status-success { background: #dcfce7; color: #166534; }
+        .status-pending { background: #fef9c3; color: #854d0e; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 2rem; border-radius: 16px; width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; animation: slideUp 0.3s ease-out; }
+        .modal-content.wide { max-width: 1100px; }
+        .close-btn { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.5rem; color: #9ca3af; transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); }
+        .modal-title { font-size: 1.5rem; color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+
+        /* Forms */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: #4b5563; }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; transition: 0.3s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+        .full-width { grid-column: 1 / -1; }
+
+        /* History Ledger specific */
+        .ledger-summary { display: flex; gap: 2rem; background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; flex-wrap: wrap;}
+        .summary-item h4 { color: #6b7280; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 5px; }
+        .summary-item h2 { color: var(--text-main); font-size: 1.5rem; font-family: monospace; }
+
+        .loader { display: none; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="bubbles"><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div></div>
+
+    <div class="container">
+        <div class="header-panel">
+            <h1><i class="fas fa-shield-alt"></i> Master Admin Portal</h1>
+            <div class="controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search client, email, or txn ID..." onkeyup="filterTable()">
+                </div>
+                <button class="btn btn-success" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Payment</button>
+                <button class="btn btn-outline" onclick="fetchData()"><i class="fas fa-sync-alt" id="refreshIcon"></i></button>
+            </div>
+        </div>
+
+        <div class="table-panel">
+            <div class="loader" id="mainLoader"></div>
+            <div class="table-wrapper">
+                <table id="mainTable">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Client Info</th>
+                            <th>Project / TXN</th>
+                            <th>Amt Paid</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="formModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h2 class="modal-title" id="formTitle"><i class="fas fa-edit"></i> Edit Transaction</h2>
+            
+            <form id="dataForm">
+                <input type="hidden" id="f_rowNum">
+                <div class="form-grid">
+                    <div class="form-group"><label>Customer Name</label><input type="text" id="f_name" required></div>
+                    <div class="form-group"><label>Mobile</label><input type="text" id="f_mobile" required></div>
+                    <div class="form-group"><label>Email ID</label><input type="email" id="f_email" required></div>
+                    <div class="form-group"><label>Project Name</label><input type="text" id="f_project" required></div>
+                    
+                    <div class="form-group"><label>Total Project Amount (₹)</label><input type="number" id="f_totalAmt" required></div>
+                    <div class="form-group"><label>Amount Paid (₹)</label><input type="number" id="f_paidAmt" required></div>
+                    
+                    <div class="form-group"><label>Date</label><input type="date" id="f_date" required></div>
+                    <div class="form-group"><label>Time</label><input type="time" id="f_time" required></div>
+                    
+                    <div class="form-group"><label>Transaction ID</label><input type="text" id="f_txn"></div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="f_status" required>
+                            <option value="Success">Success</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width"><label>Admin Remark</label><input type="text" id="f_remark"></div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeModals()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn"><i class="fas fa-save"></i> Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="historyModal">
+        <div class="modal-content wide">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h2 class="modal-title"><i class="fas fa-user-clock"></i> User Ledger: <span id="h_name" style="color:#1f2937;"></span></h2>
+            
+            <div class="ledger-summary">
+                <div class="summary-item"><h4>Email</h4><h2 id="h_email" style="font-size: 1.1rem; font-family: sans-serif;"></h2></div>
+                <div class="summary-item"><h4>Total Project Cost</h4><h2 id="h_total" style="color:var(--primary);">₹0</h2></div>
+                <div class="summary-item"><h4>Total Paid</h4><h2 id="h_paid" style="color:var(--success);">₹0</h2></div>
+                <div class="summary-item"><h4>Remaining Balance</h4><h2 id="h_rem" style="color:var(--danger);">₹0</h2></div>
+                <div style="flex-grow: 1; text-align: right; align-self: center;">
+                    <button class="btn btn-primary" onclick="downloadFullStatement()" style="display: inline-flex;"><i class="fas fa-file-pdf"></i> Download Statement</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper" style="max-height: 40vh;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>TXN ID</th>
+                            <th>Amt Paid</th>
+                            <th>Bal. After TXN</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // CONFIGURATION
+        // =========================================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZBr5rYQfLQg_IbsSHoZCiMmlO5g0BaU2qnrsg-lbr32W4AlUnKmoVmHefDTixDnfR/exec';
+        const COMPANY_LOGO_BASE64 = ""; // Optional Base64 Logo
+        // =========================================================
+
+        let allData = [];
+        let currentUserHistory = []; // Stores history when viewing a specific user
+        
+        window.onload = fetchData;
+
+        function closeModals() {
+            document.getElementById('formModal').style.display = 'none';
+            document.getElementById('historyModal').style.display = 'none';
+            document.getElementById('dataForm').reset();
+        }
+
+        async function fetchData() {
+            document.getElementById('mainLoader').style.display = 'block';
+            document.getElementById('tableBody').innerHTML = '';
+            document.getElementById('refreshIcon').classList.add('fa-spin');
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const json = await response.json();
+                allData = json.data ? json.data.reverse() : []; // Reverse to show newest first
+                renderMainTable(allData);
+            } catch (error) {
+                alert("Failed to load data.");
+            } finally {
+                document.getElementById('mainLoader').style.display = 'none';
+                document.getElementById('refreshIcon').classList.remove('fa-spin');
+            }
+        }
+
+        function renderMainTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.forEach((item) => {
+                const isSuccess = String(item.status).toLowerCase() === 'success';
+                let badgeClass = isSuccess ? 'status-success' : (String(item.status).toLowerCase() === 'pending' ? 'status-pending' : 'status-failed');
+
+                const tr = document.createElement('tr');
+                const encodedData = encodeURIComponent(JSON.stringify(item));
+
+                tr.innerHTML = `
+                    <td><strong>${item.date || '-'}</strong><br><small>${item.time || ''}</small></td>
+                    <td><strong>${item.name || 'Unknown'}</strong><br><small><a href="mailto:${item.email}">${item.email}</a><br>${item.mobile}</small></td>
+                    <td><span style="color:var(--primary); font-weight:bold;">${item.projectName || '-'}</span><br><small style="font-family:monospace;">${item.transactionId || '-'}</small></td>
+                    <td><strong style="font-size:1.1rem;">₹${(Number(String(item.amountPaid).replace(/,/g, ''))||0).toLocaleString('en-IN')}</strong></td>
+                    <td><span class="status-badge ${badgeClass}">${item.status || 'Pending'}</span></td>
+                    <td>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-outline btn-action" onclick="openEditModal('${encodedData}')" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-primary btn-action" onclick="viewUserHistory('${item.email}')" title="View Full Ledger"><i class="fas fa-list-alt"></i> Ledger</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allData.filter(i => 
+                (i.name && i.name.toLowerCase().includes(q)) || 
+                (i.email && i.email.toLowerCase().includes(q)) || 
+                (i.transactionId && i.transactionId.toLowerCase().includes(q))
+            );
+            renderMainTable(filtered);
+        }
+
+        // =========================================================
+        // ADD / EDIT LOGIC
+        // =========================================================
+        function openAddModal() {
+            closeModals();
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus-circle"></i> Add New Payment';
+            document.getElementById('f_rowNum').value = '';
+            
+            // Auto-fill date and time
+            const now = new Date();
+            document.getElementById('f_date').value = now.toISOString().split('T')[0];
+            document.getElementById('f_time').value = now.toTimeString().split(' ')[0].substring(0,5);
+            
+            document.getElementById('formModal').style.display = 'flex';
+        }
+
+        function openEditModal(encodedData) {
+            const item = JSON.parse(decodeURIComponent(encodedData));
+            closeModals();
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Transaction';
+            
+            document.getElementById('f_rowNum').value = item.rowNum;
+            document.getElementById('f_name').value = item.name;
+            document.getElementById('f_mobile').value = item.mobile;
+            document.getElementById('f_email').value = item.email;
+            document.getElementById('f_project').value = item.projectName;
+            
+            // Format numbers nicely for input
+            document.getElementById('f_totalAmt').value = Number(String(item.totalAmount).replace(/,/g, ''));
+            document.getElementById('f_paidAmt').value = Number(String(item.amountPaid).replace(/,/g, ''));
+            
+            // Format date for <input type="date">
+            try { 
+                const dParts = item.date.split('/'); // Assuming DD/MM/YYYY
+                if(dParts.length === 3) document.getElementById('f_date').value = `${dParts[2]}-${dParts[1].padStart(2,'0')}-${dParts[0].padStart(2,'0')}`;
+                else document.getElementById('f_date').value = new Date(item.date).toISOString().split('T')[0];
+            } catch(e) { }
+
+            // Format time for <input type="time"> (HH:MM)
+            try {
+                let timeStr = item.time;
+                if(timeStr.includes('PM') || timeStr.includes('AM')) {
+                    const [time, modifier] = timeStr.split(' ');
+                    let [hours, minutes] = time.split(':');
+                    if (hours === '12') hours = '00';
+                    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                    document.getElementById('f_time').value = `${hours.toString().padStart(2, '0')}:${minutes}`;
+                } else {
+                    document.getElementById('f_time').value = timeStr.substring(0,5);
+                }
+            } catch(e) {}
+
+            document.getElementById('f_txn').value = item.transactionId;
+            
+            const statusVal = String(item.status).trim();
+            const formattedStatus = statusVal.charAt(0).toUpperCase() + statusVal.slice(1);
+            document.getElementById('f_status').value = formattedStatus;
+            
+            document.getElementById('f_remark').value = item.remark;
+            
+            document.getElementById('formModal').style.display = 'flex';
+        }
+
+        document.getElementById('dataForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('saveBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const rowNum = document.getElementById('f_rowNum').value;
+            const payload = {
+                name: document.getElementById('f_name').value,
+                mobile: document.getElementById('f_mobile').value,
+                email: document.getElementById('f_email').value,
+                totalAmount: document.getElementById('f_totalAmt').value,
+                amountPaid: document.getElementById('f_paidAmt').value,
+                date: document.getElementById('f_date').value,
+                time: document.getElementById('f_time').value,
+                transactionId: document.getElementById('f_txn').value,
+                projectName: document.getElementById('f_project').value,
+                status: document.getElementById('f_status').value,
+                remark: document.getElementById('f_remark').value
+            };
+
+            try {
+                if (rowNum) {
+                    // It's an Edit -> POST with URLSearchParams action=edit
+                    const formData = new URLSearchParams();
+                    formData.append('action', 'edit');
+                    formData.append('rowNum', rowNum);
+                    Object.keys(payload).forEach(k => formData.append(k, payload[k]));
+                    
+                    await fetch(SCRIPT_URL, { method: 'POST', body: formData, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
+                } else {
+                    // It's a New entry -> POST as JSON
+                    await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                }
+                
+                closeModals();
+                fetchData(); // Reload everything
+            } catch (error) {
+                alert("Error saving data.");
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Record';
+                btn.disabled = false;
+            }
+        });
+
+        // =========================================================
+        // USER LEDGER HISTORY LOGIC
+        // =========================================================
+        function viewUserHistory(email) {
+            // Filter all data for this email (reverse back to chronological for math, then reverse for display)
+            let userRecordsChronological = allData.filter(i => i.email === email).reverse();
+            
+            if(userRecordsChronological.length === 0) return;
+
+            let totalProjectAmount = 0;
+            let cumulativePaid = 0;
+
+            // Calculate true ledger math historically
+            userRecordsChronological = userRecordsChronological.map(record => {
+                const recordTotal = Number(String(record.totalAmount).replace(/,/g, '')) || 0;
+                if (recordTotal > totalProjectAmount) totalProjectAmount = recordTotal;
+
+                if (String(record.status).trim().toLowerCase() === 'success') {
+                    cumulativePaid += Number(String(record.amountPaid).replace(/,/g, '')) || 0;
+                }
+                
+                let histRem = totalProjectAmount - cumulativePaid;
+                if (histRem < 0) histRem = 0;
+                
+                return { ...record, calculatedRemaining: histRem };
+            });
+
+            // Store for global access (PDF generation)
+            currentUserHistory = userRecordsChronological;
+
+            const finalRem = totalProjectAmount - cumulativePaid;
+
+            // Update Ledger Header UI
+            const latestRecord = currentUserHistory[currentUserHistory.length - 1];
+            document.getElementById('h_name').innerText = latestRecord.name;
+            document.getElementById('h_email').innerText = email;
+            document.getElementById('h_total').innerText = `₹${totalProjectAmount.toLocaleString('en-IN')}`;
+            document.getElementById('h_paid').innerText = `₹${cumulativePaid.toLocaleString('en-IN')}`;
+            document.getElementById('h_rem').innerText = `₹${(finalRem > 0 ? finalRem : 0).toLocaleString('en-IN')}`;
+
+            // Render Table (Newest first)
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            const displayRecords = [...userRecordsChronological].reverse();
+
+            displayRecords.forEach(record => {
+                const isSuccess = String(record.status).toLowerCase() === 'success';
+                let badgeClass = isSuccess ? 'status-success' : (String(record.status).toLowerCase() === 'pending' ? 'status-pending' : 'status-failed');
+
+                const tr = document.createElement('tr');
+                const pData = encodeURIComponent(JSON.stringify(record));
+
+                tr.innerHTML = `
+                    <td>${record.date || '-'}<br><small>${record.time || ''}</small></td>
+                    <td style="font-family:monospace;">${record.transactionId || '-'}</td>
+                    <td><strong>₹${(Number(String(record.amountPaid).replace(/,/g, ''))||0).toLocaleString('en-IN')}</strong></td>
+                    <td>₹${(record.calculatedRemaining).toLocaleString('en-IN')}</td>
+                    <td><span class="status-badge ${badgeClass}">${record.status}</span></td>
+                    <td>
+                        ${isSuccess ? `<button class="btn btn-outline btn-action" onclick="downloadReceipt('${pData}')"><i class="fas fa-file-pdf"></i> Receipt</button>` : '-'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('historyModal').style.display = 'flex';
+        }
+
+        // =========================================================
+        // PDF GENERATION (Reused Professional Template)
+        // =========================================================
+        function downloadReceipt(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const isFullPayment = data.calculatedRemaining <= 0;
+            const receiptTitle = isFullPayment ? "FULL PAYMENT RECEIPT" : "PART PAYMENT RECEIPT";
+            const amtStr = Number(String(data.amountPaid).replace(/,/g, '')).toLocaleString('en-IN');
+
+            if (COMPANY_LOGO_BASE64) doc.addImage(COMPANY_LOGO_BASE64, 'PNG', 15, 15, 40, 12);
+            else {
+                doc.setTextColor(37, 99, 235);
+                doc.setFontSize(22); doc.setFont("helvetica", "bold"); doc.text("GYANBIT PVT. LTD.", 15, 25);
+            }
+
+            doc.setTextColor(100, 100, 100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
+            doc.text("HALDIA, NANDIGRAM, PURBAMEDINIPUR", 15, 32); doc.text("Email: helpdesk.gyanbit@gmail.com", 15, 37);
+
+            doc.setFillColor(37, 99, 235); doc.rect(120, 18, 75, 12, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.setFont("helvetica", "bold");
+            doc.text(receiptTitle, 125, 26);
+            doc.setTextColor(120, 120, 120); doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text(`Transaction Date: ${data.date || '-'}`, 125, 36);
+
+            doc.setTextColor(37, 99, 235); doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.text("RECIPIENT:", 15, 60);
+            doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(data.name || 'Client', 15, 67);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${data.email || 'N/A'}`, 15, 73); doc.text(`Phone: ${data.mobile || 'N/A'}`, 15, 78);
+
+            doc.setFont("helvetica", "bold"); doc.text(`Receipt No: ${data.transactionId || 'N/A'}`, 125, 60);
+            doc.setFont("helvetica", "normal"); doc.text(`Date: ${data.date || '-'}`, 125, 67); doc.text(`Time: ${data.time || '-'}`, 125, 73);
+
+            doc.autoTable({
+                startY: 90,
+                head: [['PROJECT / SERVICE', 'DESCRIPTION', 'QTY.', 'COST', 'TOTAL']],
+                body: [[data.projectName || 'Service Fee', 'Project Service Payment', '1', `Rs. ${amtStr}`, `Rs. ${amtStr}`]],
+                theme: 'plain',
+                headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
+                bodyStyles: { textColor: [50, 50, 50] }, alternateRowStyles: { fillColor: [250, 250, 250] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 120;
+            
+            // Get highest total from history just to be safe
+            const highestTotal = Math.max(...currentUserHistory.map(r => Number(String(r.totalAmount).replace(/,/g, ''))||0));
+
+            doc.setTextColor(50, 50, 50); doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("Receipt for Payment", 125, finalY + 20);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text("Total Project Cost", 125, finalY + 30); doc.text(`Rs. ${highestTotal.toLocaleString('en-IN')}`, 195, finalY + 30, null, null, "right");
+            doc.text("Remaining Balance", 125, finalY + 38); doc.text(`Rs. ${data.calculatedRemaining.toLocaleString('en-IN')}`, 195, finalY + 38, null, null, "right");
+            doc.setDrawColor(220, 220, 220); doc.line(125, finalY + 44, 195, finalY + 44);
+            doc.setFont("helvetica", "bold"); doc.setTextColor(37, 99, 235); doc.text("Amount Paid", 125, finalY + 52); doc.text(`Rs. ${amtStr}`, 195, finalY + 52, null, null, "right");
+
+            doc.setFont("helvetica", "normal"); doc.setTextColor(100, 100, 100); doc.text("Thanks for your business!", 15, finalY + 20);
+            doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.text("Note: This is a computer-generated receipt and requires no physical signature.", 105, 280, null, null, "center");
+
+            doc.save(`Gyanbit_Receipt_${data.transactionId || '001'}.pdf`);
+        }
+
+        function downloadFullStatement() {
+            if(currentUserHistory.length === 0) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const client = currentUserHistory[currentUserHistory.length - 1];
+
+            doc.setTextColor(37, 99, 235); doc.setFontSize(22); doc.setFont("helvetica", "bold"); doc.text("GYANBIT PVT. LTD.", 15, 25);
+            doc.setTextColor(100, 100, 100); doc.setFontSize(9); doc.setFont("helvetica", "normal");
+            doc.text("HALDIA, NANDIGRAM, PURBAMEDINIPUR", 15, 32); doc.text("Email: helpdesk.gyanbit@gmail.com", 15, 37);
+
+            doc.setFillColor(37, 99, 235); doc.rect(130, 18, 65, 12, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text("STATEMENT OF ACCOUNT", 135, 26);
+
+            doc.setTextColor(37, 99, 235); doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.text("CLIENT DETAILS:", 15, 60);
+            doc.setTextColor(50, 50, 50); doc.setFontSize(12); doc.text(client.name || 'Client', 15, 67);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${client.email || 'N/A'}`, 15, 73); doc.text(`Phone: ${client.mobile || 'N/A'}`, 15, 78); doc.text(`Project: ${client.projectName || 'N/A'}`, 15, 83);
+
+            let totalAmt = 0; let totPaid = 0;
+            const successfulPayments = currentUserHistory.filter(r => {
+                const recTot = Number(String(r.totalAmount).replace(/,/g, '')) || 0;
+                if(recTot > totalAmt) totalAmt = recTot;
+                return String(r.status).trim().toLowerCase() === 'success';
+            });
+
+            const tableBodyData = successfulPayments.map(r => {
+                const amt = Number(String(r.amountPaid).replace(/,/g, '')) || 0;
+                totPaid += amt;
+                return [r.date || '-', r.time || '-', r.transactionId || '-', `Rs. ${amt.toLocaleString('en-IN')}`];
+            });
+
+            doc.autoTable({
+                startY: 95, head: [['PAYMENT DATE', 'TIME', 'TRANSACTION ID', 'AMOUNT']],
+                body: tableBodyData, theme: 'plain', headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 150;
+            let finalRem = totalAmt - totPaid; if (finalRem < 0) finalRem = 0;
+            
+            doc.setFontSize(10); doc.text(`Total Project Cost: Rs. ${totalAmt.toLocaleString('en-IN')}`, 130, finalY + 15);
+            doc.text(`Total Amount Paid: Rs. ${totPaid.toLocaleString('en-IN')}`, 130, finalY + 22);
+            doc.setFont("helvetica", "bold"); doc.setTextColor(37, 99, 235); 
+            doc.text(`Balance Due: Rs. ${finalRem.toLocaleString('en-IN')}`, 130, finalY + 32);
+
+            doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(150, 150, 150);
+            doc.text("Note: This is a computer-generated statement and requires no physical signature.", 105, 280, null, null, "center");
+
+            doc.save(`Gyanbit_Statement_${client.name}.pdf`);
+        }
+    </script>
+</body>
+</html>

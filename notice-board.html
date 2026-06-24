@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyanbit Internships & Notices</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Smooth Fade In */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-row { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        
+        /* Modal Transitions */
+        .modal { transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal.active .modal-content { transform: scale(1); }
+        
+        /* Loading Spinner */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <nav class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8 shadow-sm z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h1 class="text-xl font-bold text-gray-800">Gyanbit <span class="text-indigo-600">Notice Board</span></h1>
+        </div>
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md transition-all flex items-center gap-2 text-sm font-medium">
+            <i class="fa-solid fa-plus"></i> Upload Notice
+        </button>
+    </nav>
+
+    <main class="flex-1 overflow-auto p-6 relative">
+        <div class="max-w-7xl mx-auto">
+            
+            <div class="flex justify-between items-center mb-5">
+                <div class="relative w-96">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="searchInput" onkeyup="filterNotices()" placeholder="Search by message or uploader..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div id="loadingIndicator" class="hidden flex items-center gap-2 text-sm text-gray-500">
+                    <div class="loader"></div> Refreshing data...
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold">
+                            <th class="px-6 py-4 w-1/2">Message / Notice</th>
+                            <th class="px-6 py-4">Posted By</th>
+                            <th class="px-6 py-4">Date</th>
+                            <th class="px-6 py-4 text-center">Link</th>
+                            <th class="px-6 py-4 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
+                        </tbody>
+                </table>
+                <div id="emptyState" class="hidden py-10 text-center text-gray-500">No notices found.</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm invisible opacity-0">
+        <div class="modal-content bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">New Notice</h2>
+            <form id="noticeForm" onsubmit="handleSubmit(event)">
+                <input type="hidden" id="rowIndex">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <textarea id="inpMessage" rows="4" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter notice details..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Uploader (Name & Role)</label>
+                        <input type="text" id="inpUploader" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. SUDIP DAS (HR - Executive)">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                            <input type="date" id="inpDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+                            <input type="url" id="inpLink" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="https://...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                    <button type="submit" id="btnSave" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md flex items-center gap-2">
+                        <span>Save Notice</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        //  CONFIG: PASTE YOUR WEB APP URL HERE
+        // ==========================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIepafafFjpZ-YOKAz9_baya7ZjnWqTsHsUSjV-nf8y4EphNlHbkcTxlwBOk6e-v3c/exec"; 
+
+        let allNotices = [];
+
+        // 1. Fetch Data
+        async function fetchNotices() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                allNotices = data;
+                renderTable(data);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                Swal.fire("Error", "Failed to load notices.", "error");
+            } finally {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+        }
+
+        // 2. Render Table
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+            }
+
+            data.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors animate-row';
+                tr.style.animationDelay = `${index * 0.05}s`;
+
+                // Smart Parse Uploader: "Name (Role)" -> Name <br> <Badge>Role</Badge>
+                let uploaderHtml = `<span class="font-semibold text-gray-900">${item.uploader}</span>`;
+                if(item.uploader.includes('(')) {
+                    const parts = item.uploader.split('(');
+                    const name = parts[0].trim();
+                    const role = parts[1].replace(')', '').trim();
+                    uploaderHtml = `
+                        <div class="flex flex-col items-start">
+                            <span class="font-bold text-gray-800">${name}</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full mt-1 border border-blue-200">${role}</span>
+                        </div>
+                    `;
+                }
+
+                // Link Button Logic
+                const linkBtn = item.link 
+                    ? `<a href="${item.link}" target="_blank" class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-md text-xs font-bold transition-all">OPEN <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>` 
+                    : `<span class="text-gray-300">-</span>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="text-gray-700 leading-relaxed max-h-20 overflow-y-auto custom-scrollbar text-sm">${item.message}</div>
+                    </td>
+                    <td class="px-6 py-4 align-top">${uploaderHtml}</td>
+                    <td class="px-6 py-4 align-top whitespace-nowrap text-gray-500 font-mono text-xs">${item.date}</td>
+                    <td class="px-6 py-4 align-top text-center">${linkBtn}</td>
+                    <td class="px-6 py-4 align-top text-center">
+                        <div class="flex justify-center gap-2">
+                            <button onclick='openEditModal(${JSON.stringify(item)})' class="text-gray-400 hover:text-indigo-600 p-2 rounded hover:bg-gray-100"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteNotice(${item.rowIndex})" class="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-gray-100"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. Search Filter
+        function filterNotices() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allNotices.filter(n => 
+                n.message.toLowerCase().includes(q) || 
+                n.uploader.toLowerCase().includes(q)
+            );
+            renderTable(filtered);
+        }
+
+        // 4. Modal Logic
+        const modal = document.getElementById('modal');
+        function openModal() {
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('active');
+            document.getElementById('modalTitle').innerText = "New Notice";
+            document.getElementById('noticeForm').reset();
+            document.getElementById('rowIndex').value = "";
+            document.getElementById('inpDate').valueAsDate = new Date(); // Default today
+        }
+        
+        function openEditModal(item) {
+            openModal();
+            document.getElementById('modalTitle').innerText = "Edit Notice";
+            document.getElementById('rowIndex').value = item.rowIndex;
+            document.getElementById('inpMessage').value = item.message;
+            document.getElementById('inpUploader').value = item.uploader;
+            document.getElementById('inpLink').value = item.link;
+            
+            // Convert dd-mm-yyyy to yyyy-mm-dd for input
+            if(item.date.includes('-')) {
+                const parts = item.date.split('-'); // 14-12-2025
+                document.getElementById('inpDate').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+
+        // 5. Submit (Add/Edit)
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<div class="loader w-4 h-4 border-white"></div> Saving...`;
+            btn.disabled = true;
+
+            const rowIndex = document.getElementById('rowIndex').value;
+            const payload = {
+                action: rowIndex ? "update" : "create",
+                rowIndex: rowIndex,
+                message: document.getElementById('inpMessage').value,
+                uploader: document.getElementById('inpUploader').value,
+                // date input is yyyy-mm-dd, ensure consistency or send as string
+                date: document.getElementById('inpDate').value, 
+                link: document.getElementById('inpLink').value
+            };
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                closeModal();
+                Swal.fire("Success", "Notice saved successfully!", "success");
+                fetchNotices(); // Refresh table
+            } catch (err) {
+                Swal.fire("Error", "Failed to save notice.", "error");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // 6. Delete Logic
+        async function deleteNotice(rowIndex) {
+            Swal.fire({
+                title: 'Delete Notice?',
+                text: "This cannot be undone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // Show loading state...
+                    Swal.showLoading();
+                    try {
+                        await fetch(SCRIPT_URL, {
+                            method: "POST",
+                            body: JSON.stringify({ action: "delete", rowIndex: rowIndex })
+                        });
+                        Swal.fire("Deleted!", "Notice removed.", "success");
+                        fetchNotices(); // Refresh
+                    } catch (err) {
+                        Swal.fire("Error", "Could not delete.", "error");
+                    }
+                }
+            })
+        }
+
+        // Initialize
+        fetchNotices();
+
+    </script>
+</body>
+</html>

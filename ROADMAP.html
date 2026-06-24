@@ -1,0 +1,440 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap Track</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+}
+
+:root{
+--bg:#020617;
+--card:rgba(255,255,255,0.06);
+--border:rgba(255,255,255,0.1);
+--text:#ffffff;
+--muted:#94a3b8;
+}
+
+body{
+background:
+radial-gradient(circle at top left,#0ea5e955,transparent 30%),
+radial-gradient(circle at bottom right,#6366f155,transparent 30%),
+linear-gradient(135deg,#020617,#0f172a);
+color:var(--text);
+min-height:100vh;
+}
+
+body.light{
+--bg:#f8fafc;
+--card:#ffffff;
+--border:#e2e8f0;
+--text:#0f172a;
+--muted:#475569;
+
+background:#f8fafc;
+}
+
+header{
+position:sticky;
+top:0;
+z-index:100;
+padding:18px 30px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+backdrop-filter:blur(15px);
+background:rgba(0,0,0,.15);
+border-bottom:1px solid var(--border);
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:12px;
+font-size:24px;
+font-weight:800;
+}
+
+.logo img{
+width:48px;
+height:48px;
+border-radius:50%;
+object-fit:cover;
+background:white;
+padding:3px;
+border:2px solid rgba(255,255,255,0.12);
+box-shadow:0 8px 18px rgba(0,0,0,.2);
+}
+
+.theme-btn{
+border:none;
+cursor:pointer;
+padding:10px 18px;
+border-radius:12px;
+background:#2563eb;
+color:white;
+font-weight:600;
+}
+
+.container{
+max-width:1400px;
+margin:auto;
+padding:40px 20px;
+}
+
+.hero{
+text-align:center;
+margin-bottom:50px;
+}
+
+.hero h1{
+font-size:42px;
+margin-bottom:10px;
+}
+
+.hero p{
+color:var(--muted);
+}
+
+.roadmap{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:25px;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--border);
+border-radius:24px;
+padding:25px;
+text-align:center;
+backdrop-filter:blur(15px);
+transition:.35s;
+}
+
+.card:hover{
+transform:translateY(-8px);
+}
+
+.day-circle{
+width:90px;
+height:90px;
+border-radius:50%;
+border:none;
+color:#fff;
+font-size:14px;
+font-weight:700;
+cursor:pointer;
+margin:auto;
+display:flex;
+align-items:center;
+justify-content:center;
+transition:.3s;
+box-shadow:0 10px 25px rgba(0,0,0,.25);
+}
+
+.day-circle:hover{
+transform:scale(1.1);
+}
+
+.card h3{
+margin-top:18px;
+font-size:18px;
+}
+
+.card p{
+margin-top:10px;
+font-size:14px;
+line-height:1.6;
+color:var(--muted);
+}
+
+.loading{
+text-align:center;
+padding:80px;
+font-size:18px;
+}
+
+.footer{
+text-align:center;
+margin-top:60px;
+padding:20px;
+color:var(--muted);
+}
+
+.notice-popup{
+position:fixed;
+inset:0;
+background:rgba(2,6,23,0.7);
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
+z-index:200;
+}
+
+.notice-box{
+max-width:560px;
+width:100%;
+background:linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.96));
+border:1px solid rgba(255,255,255,0.12);
+border-radius:24px;
+padding:24px;
+box-shadow:0 25px 60px rgba(0,0,0,0.25);
+position:relative;
+}
+
+.notice-box h3{
+margin-bottom:10px;
+font-size:22px;
+}
+
+.notice-box p{
+line-height:1.7;
+color:#cbd5e1;
+}
+
+.notice-close{
+position:absolute;
+top:12px;
+right:12px;
+background:transparent;
+border:none;
+color:white;
+cursor:pointer;
+font-size:18px;
+}
+
+@media(max-width:768px){
+
+.hero h1{
+font-size:30px;
+}
+
+.day-circle{
+width:75px;
+height:75px;
+font-size:13px;
+}
+
+.roadmap{
+grid-template-columns:1fr;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">
+<img src="GYANBIT LOGO.png" alt="Gyanbit logo" />
+<span>GYANBIT PVT. LTD.</span>
+</div>
+<button class="theme-btn" id="themeBtn">
+Toggle Theme
+</button>
+</header>
+
+<div class="container">
+
+<div class="hero">
+<h1>Learning Roadmap</h1>
+<p>Select any day to continue your learning journey</p>
+</div>
+
+<div id="roadmap" class="roadmap">
+
+<div class="loading">
+Loading lessons...
+</div>
+
+</div>
+
+<div class="footer">
+GYANBIT PVT. LTD. | All rights reserved
+</div>
+
+</div>
+
+<div id="noticePopup" class="notice-popup" style="display:none;">
+<div class="notice-box">
+<button class="notice-close" id="closeNoticeBtn" aria-label="Close notice">×</button>
+<h3>Important Notice</h3>
+<p id="noticeMessageText"></p>
+</div>
+</div>
+
+<script>
+
+const API_URL =
+"https://script.google.com/macros/s/AKfycbxMQgUlnWtkSY1EP4c1jqUsAeyOmSkbpzWjGGZY2TY0h3Ih6fuk7TDT_pzDP-kzLIUD/exec";
+
+function buildApiUrl(action='') {
+const url = new URL(API_URL);
+if(action){
+url.searchParams.set('action', action);
+}
+return url.toString();
+}
+
+let lessons=[];
+let noticeMessage='';
+
+async function loadLessons(){
+
+try{
+
+const response = await fetch(API_URL);
+
+if(!response.ok){
+throw new Error("Failed to fetch");
+}
+
+const data = await response.json();
+
+if(Array.isArray(data)){
+lessons=data;
+}
+else if(data.rows){
+lessons=data.rows;
+}
+else if(data.data){
+lessons=data.data;
+}
+else{
+lessons=[];
+}
+
+renderRoadmap();
+loadNotice();
+
+}
+catch(error){
+
+console.error(error);
+
+document.getElementById("roadmap").innerHTML=`
+<div class="loading">
+Unable to load lessons.<br><br>
+Check your Google Apps Script deployment.
+</div>
+`;
+
+}
+
+}
+
+function renderRoadmap(){
+
+const roadmap=document.getElementById("roadmap");
+
+roadmap.innerHTML="";
+
+const colors=[
+"#4285F4",
+"#34A853",
+"#FBBC05",
+"#EA4335",
+"#29B6F6"
+];
+
+lessons.forEach((lesson,index)=>{
+
+const day=
+lesson.day ||
+lesson.Day ||
+(index+1);
+
+const title=
+lesson.title ||
+lesson.Title ||
+`Day ${day}`;
+
+const description=
+lesson.description ||
+lesson.Description ||
+"Click to open lesson";
+
+const card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+<button
+class="day-circle"
+style="background:${colors[index % colors.length]}"
+onclick="goToLesson('${day}')">
+
+ ${day}
+
+</button>
+
+<h3>${title}</h3>
+
+<p>${description}</p>
+`;
+
+roadmap.appendChild(card);
+
+});
+
+}
+
+async function loadNotice(){
+try{
+const response = await fetch(buildApiUrl('get-notice'));
+if(!response.ok) return;
+const data = await response.json();
+const noticePayload = data && (data.notice || data.noticeData || null);
+const fallbackMessage = Array.isArray(data && data.rows) && data.rows.length
+? String(data.rows[data.rows.length - 1].message || '').trim()
+: '';
+noticeMessage = (noticePayload && noticePayload.message)
+? String(noticePayload.message).trim()
+: fallbackMessage;
+if(noticeMessage){
+document.getElementById("noticeMessageText").textContent = noticeMessage;
+document.getElementById("noticePopup").style.display = 'flex';
+}
+}catch(error){
+console.error(error);
+}
+}
+
+function goToLesson(day){
+
+window.location.href=
+`lesson.html?day=${encodeURIComponent(day)}`;
+
+}
+
+document
+.getElementById("themeBtn")
+.addEventListener("click",()=>{
+
+document.body.classList.toggle("light");
+
+});
+
+document.getElementById("closeNoticeBtn").addEventListener("click",()=>{
+document.getElementById("noticePopup").style.display='none';
+});
+
+loadLessons();
+
+</script>
+
+</body>
+</html>

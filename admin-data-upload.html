@@ -1,0 +1,330 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel | Routmap Track</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+    <style>
+      body {
+        font-family: Inter, sans-serif;
+        background: linear-gradient(135deg, #020617 0%, #0f172a 42%, #111827 100%);
+        color: white;
+        min-height: 100vh;
+      }
+      .glass {
+        background: rgba(15, 23, 42, 0.72);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255,255,255,0.12);
+      }
+      .jump-btn {
+        animation: pulseGlow 1.4s ease-in-out infinite;
+      }
+      @keyframes pulseGlow {
+        0%, 100% { transform: translateY(0); box-shadow: 0 0 0 rgba(34, 211, 238, 0.15); }
+        50% { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(34, 211, 238, 0.16); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <img src="GYANBIT LOGO.png" alt="Gyanbit logo" class="h-12 w-12 rounded-full border border-cyan-400/30 bg-white p-1 object-cover" />
+          <div>
+            <p class="text-sm text-cyan-300">Admin control panel</p>
+            <h1 class="text-3xl font-semibold">Manage lessons and student Colab submissions</h1>
+          </div>
+        </div>
+        <a href="dashboard.html" class="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/20">
+          <i class="fa-solid fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+      </div>
+
+      <div class="mb-6 rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 shadow-2xl shadow-cyan-500/10">
+        <p id="statusText" class="text-sm text-slate-400">Load the existing sheet records and edit or delete them here.</p>
+      </div>
+
+      <div class="mb-6 glass rounded-[2rem] p-6">
+        <div class="mb-3 flex items-center justify-between">
+          <div>
+            <p class="text-sm text-cyan-300">Notice board</p>
+            <h2 class="text-xl font-semibold">Post an important message for students</h2>
+          </div>
+          <button id="clearNoticeBtn" class="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20">Clear</button>
+        </div>
+        <textarea id="noticeMessage" class="min-h-[100px] w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Type an important notice here..."></textarea>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <button id="saveNoticeBtn" type="button" class="rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold transition hover:scale-[1.02]">
+            <i class="fa-solid fa-bell mr-2"></i>Save notice
+          </button>
+          <span id="noticeStatus" class="text-sm text-slate-400">Leave empty to remove the active notice.</span>
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section class="glass rounded-[2rem] p-6">
+          <div class="mb-4 flex items-center justify-between">
+            <div>
+              <p class="text-sm text-cyan-300">Lesson editor</p>
+              <h2 class="text-xl font-semibold">Add or update a day entry</h2>
+            </div>
+            <button id="clearFormBtn" class="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20">Clear</button>
+          </div>
+
+          <form id="lessonForm" class="space-y-3">
+            <input id="rowIndex" type="hidden" />
+            <div class="grid gap-3 sm:grid-cols-2">
+              <input id="day" class="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Day" required />
+              <input id="title" class="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Title" required />
+            </div>
+            <textarea id="description" class="min-h-[100px] w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Description" ></textarea>
+            <input id="youtube" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="YouTube URL" />
+            <input id="image" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Image URL" />
+            <input id="resource" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Resource URL" />
+            <textarea id="codingTask" class="min-h-[100px] w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Coding task"></textarea>
+            <textarea id="remarks" class="min-h-[100px] w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-cyan-400" placeholder="Remarks"></textarea>
+            <button type="submit" class="rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold transition hover:scale-[1.02]">
+              <i class="fa-solid fa-cloud-arrow-up mr-2"></i>Save lesson
+            </button>
+          </form>
+        </section>
+
+        <section class="space-y-6">
+          <div class="glass rounded-[2rem] p-6">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <p class="text-sm text-cyan-300">Lesson list</p>
+                <h2 class="text-xl font-semibold">Existing sheet content</h2>
+              </div>
+              <button id="refreshBtn" class="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20">Refresh</button>
+            </div>
+            <div id="lessonList" class="space-y-3"></div>
+          </div>
+
+          <div class="glass rounded-[2rem] p-6">
+            <div class="mb-4">
+              <p class="text-sm text-cyan-300">Student submissions</p>
+              <h2 class="text-xl font-semibold">Code submissions from the student view</h2>
+            </div>
+            <div id="submissionList" class="space-y-3"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMQgUlnWtkSY1EP4c1jqUsAeyOmSkbpzWjGGZY2TY0h3Ih6fuk7TDT_pzDP-kzLIUD/exec';
+      const lessonForm = document.getElementById('lessonForm');
+      const lessonList = document.getElementById('lessonList');
+      const submissionList = document.getElementById('submissionList');
+      const statusText = document.getElementById('statusText');
+      const rowIndexInput = document.getElementById('rowIndex');
+      const noticeMessageInput = document.getElementById('noticeMessage');
+      const noticeStatus = document.getElementById('noticeStatus');
+      let lessons = [];
+      let submissions = [];
+
+      document.getElementById('refreshBtn').addEventListener('click', loadData);
+      document.getElementById('clearFormBtn').addEventListener('click', resetForm);
+      document.getElementById('saveNoticeBtn').addEventListener('click', saveNotice);
+      document.getElementById('clearNoticeBtn').addEventListener('click', () => {
+        noticeMessageInput.value = '';
+        saveNotice();
+      });
+
+      lessonForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        setStatus('Saving...', 'text-cyan-300');
+        const payload = {
+          day: document.getElementById('day').value.trim(),
+          title: document.getElementById('title').value.trim(),
+          description: document.getElementById('description').value.trim(),
+          youtube: document.getElementById('youtube').value.trim(),
+          image: document.getElementById('image').value.trim(),
+          resource: document.getElementById('resource').value.trim(),
+          codingTask: document.getElementById('codingTask').value.trim(),
+          remarks: document.getElementById('remarks').value.trim(),
+        };
+        const action = rowIndexInput.value ? 'update-lesson' : 'add-lesson';
+        const body = { action, payload: rowIndexInput.value ? { ...payload, rowIndex: rowIndexInput.value } : payload };
+
+        try {
+          await fetch(APP_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), mode: 'no-cors' });
+          setStatus('Saved successfully.', 'text-emerald-300');
+          resetForm();
+          loadData();
+        } catch (error) {
+          setStatus('Save failed. Check the Apps Script URL or spreadsheet permissions.', 'text-rose-300');
+        }
+      });
+
+      async function loadData() {
+        try {
+          const [lessonResponse, submissionResponse, noticeResponse] = await Promise.all([
+            fetch(`${APP_SCRIPT_URL}?action=get-lessons`),
+            fetch(`${APP_SCRIPT_URL}?action=get-submissions`),
+            fetch(`${APP_SCRIPT_URL}?action=get-notice`),
+          ]);
+          lessons = (await lessonResponse.json()).rows || [];
+          submissions = (await submissionResponse.json()).rows || [];
+          const noticePayload = await noticeResponse.json();
+          const notice = noticePayload && noticePayload.notice ? noticePayload.notice : null;
+          noticeMessageInput.value = notice && notice.message ? notice.message : '';
+          noticeStatus.textContent = notice && notice.message ? 'A live notice is currently active.' : 'Leave empty to remove the active notice.';
+          renderLessons();
+          renderSubmissions();
+        } catch (error) {
+          lessonList.innerHTML = '<div class="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-200">Unable to load the sheet data right now.</div>';
+          submissionList.innerHTML = '';
+        }
+      }
+
+      function renderLessons() {
+        lessonList.innerHTML = '';
+        if (!lessons.length) {
+          lessonList.innerHTML = '<div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-400">No lessons found yet.</div>';
+          return;
+        }
+
+        lessons.forEach((lesson, index) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-2xl border border-white/10 bg-slate-950/60 p-4';
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-cyan-300">Day ${escapeHtml(lesson.day || '-')}</p>
+                <h3 class="mt-1 font-semibold text-white">${escapeHtml(lesson.title || 'Untitled')}</h3>
+                <p class="mt-2 text-sm text-slate-400">${escapeHtml(lesson.description || '')}</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="editLessonBtn rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold" data-index="${index}">Edit</button>
+                <button class="deleteLessonBtn rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200" data-index="${index}">Delete</button>
+              </div>
+            </div>`;
+          lessonList.appendChild(card);
+        });
+
+        lessonList.querySelectorAll('.editLessonBtn').forEach((button) => {
+          button.addEventListener('click', () => editLesson(Number(button.dataset.index)));
+        });
+        lessonList.querySelectorAll('.deleteLessonBtn').forEach((button) => {
+          button.addEventListener('click', () => deleteLesson(Number(button.dataset.index)));
+        });
+      }
+
+      function renderSubmissions() {
+        submissionList.innerHTML = '';
+        if (!submissions.length) {
+          submissionList.innerHTML = '<div class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-400">No student submissions yet.</div>';
+          return;
+        }
+
+        submissions.forEach((submission, index) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-2xl border border-white/10 bg-slate-950/60 p-4';
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-cyan-300">${escapeHtml(submission.lessonTitle || 'Lesson')}</p>
+                <h3 class="mt-1 font-semibold text-white">${escapeHtml(submission.name || 'Anonymous')}</h3>
+                <p class="mt-2 text-sm text-slate-400">Day ${escapeHtml(submission.day || '-')}</p>
+                <a href="${escapeHtml(submission.colabLink || '#')}" target="_blank" rel="noreferrer" class="mt-2 inline-block break-all text-sm text-cyan-300">${escapeHtml(submission.colabLink || '')}</a>
+              </div>
+              <div class="flex flex-col gap-2">
+                <button class="jumpLessonBtn jump-btn rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200" data-day="${escapeHtml(submission.day || '')}">Open lesson</button>
+                <button class="deleteSubmissionBtn rounded-full border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200" data-index="${index}">Delete</button>
+              </div>
+            </div>`;
+          submissionList.appendChild(card);
+        });
+
+        submissionList.querySelectorAll('.jumpLessonBtn').forEach((button) => {
+          button.addEventListener('click', () => {
+            const day = button.dataset.day;
+            if (day) {
+              window.location.href = `lesson.html?day=${encodeURIComponent(day)}`;
+            }
+          });
+        });
+        submissionList.querySelectorAll('.deleteSubmissionBtn').forEach((button) => {
+          button.addEventListener('click', () => deleteSubmission(Number(button.dataset.index)));
+        });
+      }
+
+      function editLesson(index) {
+        const lesson = lessons[index];
+        if (!lesson) return;
+        rowIndexInput.value = lesson.rowIndex || index;
+        document.getElementById('day').value = lesson.day || '';
+        document.getElementById('title').value = lesson.title || '';
+        document.getElementById('description').value = lesson.description || '';
+        document.getElementById('youtube').value = lesson.youtube || '';
+        document.getElementById('image').value = lesson.image || '';
+        document.getElementById('resource').value = lesson.resource || '';
+        document.getElementById('codingTask').value = lesson.codingTask || '';
+        document.getElementById('remarks').value = lesson.remarks || '';
+        document.getElementById('day').focus();
+      }
+
+      async function saveNotice() {
+        const message = noticeMessageInput.value.trim();
+        noticeStatus.textContent = 'Saving notice...';
+        try {
+          await fetch(APP_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save-notice', payload: { message } }), mode: 'no-cors' });
+          noticeStatus.textContent = message ? 'Notice saved and will appear on the student page.' : 'Notice cleared.';
+          setStatus('Notice updated.', 'text-emerald-300');
+        } catch (error) {
+          noticeStatus.textContent = 'Could not save the notice right now.';
+          setStatus('Notice update failed.', 'text-rose-300');
+        }
+      }
+
+      async function deleteLesson(index) {
+        const lesson = lessons[index];
+        if (!lesson) return;
+        try {
+          await fetch(APP_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete-lesson', payload: { rowIndex: lesson.rowIndex || index } }), mode: 'no-cors' });
+          setStatus('Lesson deleted.', 'text-emerald-300');
+          loadData();
+        } catch (error) {
+          setStatus('Delete failed. Please try again.', 'text-rose-300');
+        }
+      }
+
+      async function deleteSubmission(index) {
+        const submission = submissions[index];
+        if (!submission) return;
+        try {
+          await fetch(APP_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete-submission', payload: { rowIndex: submission.rowIndex || index } }), mode: 'no-cors' });
+          setStatus('Submission removed.', 'text-emerald-300');
+          loadData();
+        } catch (error) {
+          setStatus('Submission removal failed.', 'text-rose-300');
+        }
+      }
+
+      function resetForm() {
+        lessonForm.reset();
+        rowIndexInput.value = '';
+      }
+
+      function setStatus(message, klass) {
+        statusText.textContent = message;
+        statusText.className = `text-sm ${klass}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      loadData();
+    </script>
+  </body>
+</html>

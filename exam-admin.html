@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Exam Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        light: { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', text: '#334155' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; color: #334155; font-family: 'Inter', sans-serif; }
+        
+        /* Enhanced Professional Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .modal-pop { animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: scale(0.95); }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .tab-content { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .tab-content.active { display: block; }
+        .nav-item.active { background-color: #e0f2fe; color: #0284c7; border-right: 4px solid #0ea5e9; }
+        
+        tbody tr { transition: all 0.2s ease-in-out; }
+        tbody tr:hover { background-color: #f1f5f9; transform: scale(1.002); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        
+        .modal-input { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; outline: none; transition: all 0.2s; margin-top: 0.25rem;}
+        .modal-input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Checkbox styling */
+        .custom-checkbox { width: 1.125rem; height: 1.125rem; accent-color: #0ea5e9; cursor: pointer; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden relative bg-light-bg text-light-text">
+
+    <div id="sidebar-backdrop" onclick="adminApp.toggleMobileMenu(false)" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden transition-opacity md:hidden"></div>
+
+    <aside id="sidebar" class="w-64 bg-white border-r border-light-border flex flex-col justify-between fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-40 shadow-2xl md:shadow-sm h-full">
+        <div>
+            <div class="p-6 border-b border-light-border flex justify-between items-center">
+                <h1 class="text-xl font-bold text-brand-900 tracking-tight">Admin<span class="text-brand-500">Portal</span></h1>
+                <button onclick="adminApp.toggleMobileMenu(false)" class="md:hidden text-slate-500 hover:text-rose-500 transition focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <nav class="mt-6 flex flex-col gap-1 px-3">
+                <button onclick="adminApp.switchTab('dashboard')" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    &#128200; Overview
+                </button>
+                <button onclick="adminApp.switchTab('students')" id="nav-students" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    &#128101; Students & Approvals
+                </button>
+                <button onclick="adminApp.switchTab('questions')" id="nav-questions" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    &#10067; Manage Questions
+                </button>
+                <button onclick="adminApp.switchTab('results')" id="nav-results" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    &#128203; Exam Results
+                </button>
+                <button onclick="adminApp.switchTab('settings')" id="nav-settings" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 transition">
+                    &#9881; Exam Settings
+                </button>
+            </nav>
+        </div>
+        <div class="p-6 text-xs text-slate-400 font-medium">
+            System Live & Secure
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <header class="md:hidden bg-white border-b border-light-border p-4 flex justify-between items-center shrink-0 z-20 shadow-sm">
+            <h1 class="text-lg font-bold text-brand-900 tracking-tight">Admin<span class="text-brand-500">Portal</span></h1>
+            <button onclick="adminApp.toggleMobileMenu(true)" class="text-slate-600 hover:text-brand-600 focus:outline-none transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </header>
+
+        <main class="flex-1 overflow-y-auto bg-light-bg relative p-4 sm:p-8 md:p-10 lg:p-12">
+            
+            <div id="data-loader" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center hidden fade-in">
+                <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-4"></div>
+                <p class="text-brand-900 font-medium animate-pulse">Syncing with database...</p>
+            </div>
+
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 slide-up">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-slate-800" id="page-title">Dashboard Overview</h2>
+                    </div>
+                    <button onclick="adminApp.fetchData()" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-50 transition hover:shadow focus:ring-2 focus:ring-brand-500 flex items-center justify-center gap-2">
+                        &#10227; Refresh Data
+                    </button>
+                </div>
+
+                <div id="tab-dashboard" class="tab-content active">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-light-border slide-up delay-1 hover:shadow-md transition">
+                            <div class="text-slate-500 text-xs sm:text-sm font-semibold uppercase mb-2">Total Students</div>
+                            <div class="text-3xl sm:text-4xl font-bold text-slate-800" id="stat-total-students">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-light-border slide-up delay-2 hover:shadow-md transition">
+                            <div class="text-amber-500 text-xs sm:text-sm font-semibold uppercase mb-2">Pending Approvals</div>
+                            <div class="text-3xl sm:text-4xl font-bold text-amber-600" id="stat-pending">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-light-border slide-up delay-2 hover:shadow-md transition">
+                            <div class="text-brand-500 text-xs sm:text-sm font-semibold uppercase mb-2">Active Questions</div>
+                            <div class="text-3xl sm:text-4xl font-bold text-brand-600" id="stat-questions">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-light-border slide-up delay-3 hover:shadow-md transition">
+                            <div class="text-emerald-500 text-xs sm:text-sm font-semibold uppercase mb-2">Exams Completed</div>
+                            <div class="text-3xl sm:text-4xl font-bold text-emerald-600" id="stat-completed">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-students" class="tab-content">
+                    <div class="bg-white rounded-2xl shadow-sm border border-light-border overflow-hidden slide-up">
+                        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+                            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                <h3 class="font-bold text-slate-800 text-lg hidden md:block">Student Approvals & Access</h3>
+                                
+                                <div class="relative w-full md:w-64">
+                                    <input type="text" id="search-students" oninput="adminApp.renderStudents()" placeholder="Search by Mobile..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition shadow-sm">
+                                    <span class="absolute left-3 top-2 text-slate-400">&#128269;</span>
+                                </div>
+                            </div>
+
+                            <div id="bulk-actions-students" class="hidden items-center flex-wrap gap-3 mt-2 p-3 bg-brand-50 rounded-xl border border-brand-200 shadow-inner fade-in">
+                                <span class="text-sm font-bold text-brand-900 bg-white px-2 py-1 rounded shadow-sm border border-brand-100" id="selected-student-count">0 Selected</span>
+                                <div class="h-5 w-px bg-brand-300 mx-1 hidden sm:block"></div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <button onclick="adminApp.applyBulkStudentStatus('approved')" class="text-xs bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 px-3 py-1.5 rounded shadow-sm hover:bg-emerald-100 transition">Approve</button>
+                                    <button onclick="adminApp.applyBulkStudentStatus('blocked')" class="text-xs bg-rose-50 text-rose-700 font-semibold border border-rose-200 px-3 py-1.5 rounded shadow-sm hover:bg-rose-100 transition">Block</button>
+                                    <button onclick="adminApp.applyBulkStudentStatus('pending')" class="text-xs bg-amber-50 text-amber-700 font-semibold border border-amber-200 px-3 py-1.5 rounded shadow-sm hover:bg-amber-100 transition">Set Pending</button>
+                                    
+                                    <div class="h-4 w-px bg-brand-300 mx-1"></div>
+                                    <button onclick="adminApp.applyBulkStudentDelete()" class="text-xs bg-red-600 text-white font-semibold border border-red-700 px-3 py-1.5 rounded shadow-sm hover:bg-red-700 transition flex items-center gap-1">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold text-center w-12">
+                                            <input type="checkbox" id="selectAllStudents" class="custom-checkbox" onchange="adminApp.toggleSelectAllStudents(this)">
+                                        </th>
+                                        <th class="px-6 py-4 font-semibold">Student Name</th>
+                                        <th class="px-6 py-4 font-semibold">Mobile Number</th>
+                                        <th class="px-6 py-4 font-semibold text-center">Attempts (Used/Allowed)</th>
+                                        <th class="px-6 py-4 font-semibold">Assigned Subjects</th>
+                                        <th class="px-6 py-4 font-semibold">Status</th>
+                                        <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="student-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-questions" class="tab-content">
+                    <div class="bg-white rounded-2xl shadow-sm border border-light-border overflow-hidden slide-up">
+                        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+                            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                <h3 class="font-bold text-slate-800 text-lg hidden md:block">Exam Questions</h3>
+                                
+                                <div class="flex flex-col sm:flex-row gap-3 flex-1 md:max-w-xl">
+                                    <select id="filter-category" onchange="adminApp.renderQuestions()" class="w-full sm:w-1/3 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition shadow-sm bg-white">
+                                        <option value="">All Subjects</option>
+                                    </select>
+                                    
+                                    <div class="relative flex-1">
+                                        <input type="text" id="search-questions" oninput="adminApp.renderQuestions()" placeholder="Search Question..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition shadow-sm">
+                                        <span class="absolute left-3 top-2 text-slate-400">&#128269;</span>
+                                    </div>
+                                </div>
+                                
+                                <button onclick="adminApp.openAddQuestion()" class="w-full md:w-auto bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition shadow hover:shadow-lg flex items-center justify-center gap-2 shrink-0">
+                                    + Add Question
+                                </button>
+                            </div>
+
+                            <div id="bulk-actions" class="hidden items-center flex-wrap gap-3 mt-2 p-3 bg-brand-50 rounded-xl border border-brand-200 shadow-inner fade-in">
+                                <span class="text-sm font-bold text-brand-900 bg-white px-2 py-1 rounded shadow-sm border border-brand-100" id="selected-count">0 Selected</span>
+                                <div class="h-5 w-px bg-brand-300 mx-1 hidden sm:block"></div>
+                                
+                                <div class="flex items-center gap-2 border-r border-brand-300 pr-3">
+                                    <input type="number" id="bulk-marks" placeholder="Marks" min="1" class="w-20 px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                    <button onclick="adminApp.applyBulkMarks()" class="text-xs bg-white text-slate-700 font-semibold border border-slate-300 px-3 py-1.5 rounded shadow-sm hover:bg-slate-50 transition">Apply Marks</button>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <button onclick="adminApp.applyBulkVisibility(true)" class="text-xs bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 px-3 py-1.5 rounded shadow-sm hover:bg-emerald-100 transition flex items-center gap-1">&#128065; Set Visible</button>
+                                    <button onclick="adminApp.applyBulkVisibility(false)" class="text-xs bg-rose-50 text-rose-700 font-semibold border border-rose-200 px-3 py-1.5 rounded shadow-sm hover:bg-rose-100 transition flex items-center gap-1">&#128064; Set Hidden</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold text-center w-12">
+                                            <input type="checkbox" id="selectAll" class="custom-checkbox" onchange="adminApp.toggleSelectAll(this)">
+                                        </th>
+                                        <th class="px-6 py-4 font-semibold text-center w-20">Visible</th>
+                                        <th class="px-6 py-4 font-semibold w-24">Subject</th>
+                                        <th class="px-6 py-4 font-semibold md:min-w-[250px]">Question</th>
+                                        <th class="px-6 py-4 font-semibold w-24 text-center">Marks</th>
+                                        <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="questions-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-results" class="tab-content">
+                    <div class="bg-white rounded-2xl shadow-sm border border-light-border overflow-hidden slide-up">
+                        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                            <h3 class="font-bold text-slate-800 text-lg hidden md:block">Exam Results</h3>
+                            <div class="relative flex-1 w-full md:max-w-lg">
+                                <input type="text" id="search-results" oninput="adminApp.renderResults()" placeholder="Search Name, Mobile, or Date..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition shadow-sm">
+                                <span class="absolute left-3 top-2 text-slate-400">&#128269;</span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold">Date & Time</th>
+                                        <th class="px-6 py-4 font-semibold">Student Name</th>
+                                        <th class="px-6 py-4 font-semibold">Mobile Number</th>
+                                        <th class="px-6 py-4 font-semibold">Score</th>
+                                        <th class="px-6 py-4 font-semibold">Time Taken</th>
+                                        <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-settings" class="tab-content">
+                    <div class="bg-white rounded-2xl shadow-sm border border-light-border overflow-hidden slide-up p-6 md:p-8">
+                        <div class="max-w-2xl">
+                            <h3 class="font-bold text-slate-800 text-xl border-b border-slate-100 pb-4 mb-6">Exam Configuration</h3>
+                            <p class="text-slate-500 text-sm mb-6">Manage global rules for the examination. Note: Individual question marks set in the "Manage Questions" tab will override the default marks here.</p>
+                            
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Total Exam Time Duration (Minutes)</label>
+                                    <input type="number" id="setting-duration" class="modal-input w-full md:w-1/2" placeholder="e.g., 60">
+                                    <p class="text-xs text-slate-400 mt-1">Total time allotted for a student to complete the exam.</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Default Marks Per Question</label>
+                                    <input type="number" id="setting-marks" class="modal-input w-full md:w-1/2" placeholder="e.g., 1">
+                                    <p class="text-xs text-slate-400 mt-1">This is applied to new questions automatically.</p>
+                                </div>
+                                
+                                <div class="pt-4 border-t border-slate-100">
+                                    <button onclick="adminApp.saveSettings()" class="bg-brand-500 hover:bg-brand-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition shadow hover:shadow-lg flex items-center justify-center gap-2">
+                                        Save Configurations
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 sm:p-6 transition-opacity">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8 max-h-[90vh] overflow-y-auto relative">
+            <button onclick="adminApp.closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-5 pb-2 border-b border-slate-100">Edit Record</h3>
+            <div id="modal-body" class="space-y-4"></div>
+            <div class="mt-8 flex justify-end gap-3 pt-5 border-t border-slate-100">
+                <button onclick="adminApp.closeModal()" class="px-5 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold transition focus:ring-2 focus:ring-slate-300">Cancel</button>
+                <button id="modal-save-btn" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-semibold transition shadow-md hover:shadow-lg focus:ring-2 focus:ring-brand-500 focus:ring-offset-1">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4F1a_cI6g93INWKzJxgsKBvM6h2Sjtyd9tR_-8oQo6NSB4JDtmXPMsG6d8W-_xcW16A/exec'; 
+
+        const adminApp = {
+            data: { 
+                students: [], 
+                examScores: [], 
+                questions: [],
+                settings: { duration: 60, marksPerQuestion: 1 }
+            },
+
+            init() { this.fetchData(); },
+
+            toggleMobileMenu(show) {
+                const sidebar = document.getElementById('sidebar');
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (show) {
+                    sidebar.classList.remove('-translate-x-full');
+                    backdrop.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                    backdrop.classList.add('hidden');
+                }
+            },
+
+            switchTab(tabId) {
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                document.getElementById('nav-' + tabId).classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.getElementById('tab-' + tabId).classList.add('active');
+                
+                const titles = { 
+                    'dashboard': 'Dashboard Overview', 
+                    'students': 'Student Approvals', 
+                    'questions': 'Manage Questions', 
+                    'results': 'Exam Results',
+                    'settings': 'Exam Configurations'
+                };
+                document.getElementById('page-title').innerText = titles[tabId];
+                this.toggleMobileMenu(false);
+            },
+
+            fetchData() {
+                document.getElementById('data-loader').classList.remove('hidden');
+                fetch(SCRIPT_URL)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.data.students = data.students || [];
+                        this.data.examScores = data.examScores || [];
+                        this.data.questions = data.questions || [];
+                        if(data.settings) this.data.settings = data.settings;
+                        
+                        this.data.examScores.reverse(); 
+                        
+                        this.updateDashboard();
+                        this.renderStudents();
+                        this.renderResults();
+                        this.populateCategories(); 
+                        this.renderQuestions();
+                        this.renderSettings();
+                        
+                        document.getElementById('data-loader').classList.add('hidden');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert("Failed to sync data.");
+                        document.getElementById('data-loader').classList.add('hidden');
+                    });
+            },
+
+            updateDashboard() {
+                document.getElementById('stat-total-students').innerText = this.data.students.length;
+                document.getElementById('stat-pending').innerText = this.data.students.filter(s => s.Status === 'pending').length;
+                const activeQs = this.data.questions.filter(q => q.isActive !== false).length;
+                document.getElementById('stat-questions').innerText = activeQs;
+                document.getElementById('stat-completed').innerText = this.data.examScores.length;
+            },
+
+            getUniqueCategories() {
+                return [...new Set(this.data.questions.map(q => q.category))].filter(Boolean);
+            },
+
+            populateCategories() {
+                const select = document.getElementById('filter-category');
+                const currentVal = select.value;
+                const uniqueCategories = this.getUniqueCategories();
+                
+                let optionsHtml = '<option value="">All Subjects</option>';
+                uniqueCategories.forEach(cat => {
+                    optionsHtml += `<option value="${cat}">${cat}</option>`;
+                });
+                select.innerHTML = optionsHtml;
+                select.value = currentVal; 
+            },
+
+            // --- Render Students Tab ---
+            renderStudents() {
+                const tbody = document.getElementById('student-table-body');
+                tbody.innerHTML = '';
+                
+                const searchInput = document.getElementById('search-students');
+                const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+                // Reset Bulk Select
+                document.getElementById('selectAllStudents').checked = false;
+                this.updateStudentBulkToolbar();
+
+                let displayStudents = this.data.students;
+                if (searchTerm) {
+                    displayStudents = displayStudents.filter(s => String(s.Mobile).toLowerCase().includes(searchTerm));
+                }
+
+                if(displayStudents.length === 0) {
+                    return tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">No students found matching your search.</td></tr>`;
+                }
+
+                const sortedStudents = [...displayStudents].sort((a, b) => {
+                    if (a.Status === 'pending' && b.Status !== 'pending') return -1;
+                    if (a.Status !== 'pending' && b.Status === 'pending') return 1;
+                    return 0;
+                });
+
+                sortedStudents.forEach(student => {
+                    const rawStatus = String(student.Status).toLowerCase();
+                    let badge = '';
+                    
+                    if (rawStatus === 'pending') {
+                        badge = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Pending</span>`;
+                    } else if (rawStatus === 'blocked') {
+                        badge = `<span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Blocked</span>`;
+                    } else {
+                        badge = `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Approved</span>`;
+                    }
+                    
+                    const usedAttempts = this.data.examScores.filter(score => score.Mobile == student.Mobile).length;
+                    const allowedAttempts = student.AllowedAttempts || 1;
+                    const attemptsColor = usedAttempts >= allowedAttempts ? 'text-rose-600 font-bold' : 'text-slate-600 font-medium';
+
+                    // Parse Assigned Subjects
+                    const allowedSubjs = student.AllowedSubjects ? String(student.AllowedSubjects).split(',').filter(Boolean) : [];
+                    const subjHtml = allowedSubjs.length > 0 
+                        ? allowedSubjs.map(s => `<span class="inline-block px-2 py-1 bg-brand-50 text-brand-700 rounded text-[10px] uppercase font-bold border border-brand-200 mr-1 mb-1 shadow-sm">${s}</span>`).join('')
+                        : `<span class="text-slate-400 text-xs italic font-medium px-2 py-1 bg-slate-100 rounded border border-slate-200">All Subjects</span>`;
+
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr class="${rawStatus === 'blocked' ? 'bg-rose-50/30' : ''}">
+                            <td class="px-6 py-4 text-center">
+                                <input type="checkbox" class="custom-checkbox stu-row-check" value="${student.Mobile}" onchange="adminApp.checkStudentSelection()">
+                            </td>
+                            <td class="px-6 py-4 font-medium text-slate-800">${student.Name}</td>
+                            <td class="px-6 py-4 text-slate-600 font-mono text-xs">${student.Mobile}</td>
+                            <td class="px-6 py-4 text-center ${attemptsColor} bg-white rounded-lg m-2">${usedAttempts} / ${allowedAttempts}</td>
+                            <td class="px-6 py-4 whitespace-normal min-w-[150px] max-w-[200px] leading-tight">${subjHtml}</td>
+                            <td class="px-6 py-4">${badge}</td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="adminApp.openEditStudent('${student.Mobile}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">Edit</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                });
+            },
+
+            // --- Student Bulk Actions ---
+            toggleSelectAllStudents(source) {
+                const checkboxes = document.querySelectorAll('.stu-row-check');
+                checkboxes.forEach(cb => cb.checked = source.checked);
+                this.updateStudentBulkToolbar();
+            },
+            
+            checkStudentSelection() {
+                const checkboxes = document.querySelectorAll('.stu-row-check');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                
+                document.getElementById('selectAllStudents').checked = allChecked && checkboxes.length > 0;
+                this.updateStudentBulkToolbar();
+            },
+
+            updateStudentBulkToolbar() {
+                const selectedCount = document.querySelectorAll('.stu-row-check:checked').length;
+                const toolbar = document.getElementById('bulk-actions-students');
+                const countBadge = document.getElementById('selected-student-count');
+                
+                if (selectedCount > 0) {
+                    toolbar.classList.remove('hidden');
+                    toolbar.classList.add('flex');
+                    countBadge.innerText = `${selectedCount} Selected`;
+                } else {
+                    toolbar.classList.add('hidden');
+                    toolbar.classList.remove('flex');
+                }
+            },
+
+            applyBulkStudentStatus(status) {
+                const selectedBoxes = document.querySelectorAll('.stu-row-check:checked');
+                const mobilesToUpdate = Array.from(selectedBoxes).map(cb => cb.value);
+                
+                mobilesToUpdate.forEach(mobile => {
+                    const s = this.data.students.find(s => s.Mobile == mobile);
+                    if(s) s.Status = status;
+                });
+                
+                this.updateDashboard();
+                this.renderStudents(); 
+                this.sendRequest({ action: "bulkUpdateStudentStatus", mobiles: mobilesToUpdate, status: status }, true);
+            },
+
+            applyBulkStudentDelete() {
+                if(!confirm("Warning: Are you absolutely sure you want to completely delete the selected students?")) return;
+                
+                const selectedBoxes = document.querySelectorAll('.stu-row-check:checked');
+                const mobilesToDelete = Array.from(selectedBoxes).map(cb => cb.value);
+                
+                this.data.students = this.data.students.filter(s => !mobilesToDelete.includes(String(s.Mobile)));
+                
+                this.updateDashboard();
+                this.renderStudents();
+                this.sendRequest({ action: "bulkDeleteStudents", mobiles: mobilesToDelete }, true);
+            },
+
+            // --- Render Questions Tab ---
+            renderQuestions() { 
+                const tbody = document.getElementById('questions-table-body');
+                tbody.innerHTML = '';
+                
+                const searchInput = document.getElementById('search-questions');
+                const categoryFilter = document.getElementById('filter-category');
+                
+                const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+                const subjectTerm = categoryFilter ? categoryFilter.value : '';
+
+                document.getElementById('selectAll').checked = false;
+                this.updateBulkToolbar();
+
+                let displayQuestions = this.data.questions;
+                
+                if (subjectTerm) {
+                    displayQuestions = displayQuestions.filter(q => q.category === subjectTerm);
+                }
+                
+                if (searchTerm) {
+                    displayQuestions = displayQuestions.filter(q => 
+                        String(q.category).toLowerCase().includes(searchTerm) || 
+                        String(q.text).toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                if(displayQuestions.length === 0) {
+                    return tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400">No questions found matching your filters.</td></tr>`;
+                }
+
+                displayQuestions.forEach(q => {
+                    const safeText = encodeURIComponent(q.text);
+                    const isChecked = q.isActive !== false;
+                    const marks = q.marks || this.data.settings.marksPerQuestion || 1;
+
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr class="${!isChecked ? 'bg-slate-50 opacity-75' : ''}">
+                            <td class="px-6 py-4 text-center">
+                                <input type="checkbox" class="custom-checkbox q-row-check" value="${safeText}" onchange="adminApp.checkSelection()">
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <label class="relative inline-flex items-center cursor-pointer" title="Toggle visibility">
+                                    <input type="checkbox" class="sr-only peer" ${isChecked ? 'checked' : ''} onchange="adminApp.toggleQuestionVisibility('${safeText}', this.checked)">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500 shadow-inner"></div>
+                                </label>
+                            </td>
+                            <td class="px-6 py-4 text-slate-500 text-xs font-semibold uppercase tracking-wide">${q.category}</td>
+                            <td class="px-6 py-4 font-medium text-slate-800 max-w-md">
+                                <div class="line-clamp-2" title="${q.text}">${q.text}</div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <input type="number" value="${marks}" min="1" onchange="adminApp.updateIndividualMark('${safeText}', this.value)" class="w-16 px-2 py-1 border border-slate-300 rounded text-center text-sm focus:ring-2 focus:ring-brand-500 outline-none shadow-sm bg-white">
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="adminApp.openEditQuestion('${safeText}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">Edit</button>
+                                    <button onclick="adminApp.deleteQuestion('${safeText}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                });
+            },
+
+            // --- Question Bulk Actions ---
+            toggleSelectAll(source) {
+                const checkboxes = document.querySelectorAll('.q-row-check');
+                checkboxes.forEach(cb => cb.checked = source.checked);
+                this.updateBulkToolbar();
+            },
+            
+            checkSelection() {
+                const checkboxes = document.querySelectorAll('.q-row-check');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                
+                document.getElementById('selectAll').checked = allChecked && checkboxes.length > 0;
+                this.updateBulkToolbar();
+            },
+            
+            updateBulkToolbar() {
+                const selectedCount = document.querySelectorAll('.q-row-check:checked').length;
+                const toolbar = document.getElementById('bulk-actions');
+                const countBadge = document.getElementById('selected-count');
+                
+                if (selectedCount > 0) {
+                    toolbar.classList.remove('hidden');
+                    toolbar.classList.add('flex');
+                    countBadge.innerText = `${selectedCount} Selected`;
+                } else {
+                    toolbar.classList.add('hidden');
+                    toolbar.classList.remove('flex');
+                }
+            },
+            
+            applyBulkVisibility(makeVisible) {
+                const selectedBoxes = document.querySelectorAll('.q-row-check:checked');
+                const textsToUpdate = Array.from(selectedBoxes).map(cb => decodeURIComponent(cb.value));
+                
+                textsToUpdate.forEach(text => {
+                    const q = this.data.questions.find(q => q.text === text);
+                    if(q) q.isActive = makeVisible;
+                });
+                
+                this.updateDashboard();
+                this.renderQuestions(); 
+                this.sendRequest({ action: "bulkUpdateVisibility", questions: textsToUpdate, isActive: makeVisible }, true);
+            },
+            
+            applyBulkMarks() {
+                const marksInput = document.getElementById('bulk-marks').value;
+                if(!marksInput || marksInput < 1) return alert("Please enter a valid mark number.");
+                
+                const selectedBoxes = document.querySelectorAll('.q-row-check:checked');
+                const textsToUpdate = Array.from(selectedBoxes).map(cb => decodeURIComponent(cb.value));
+                
+                textsToUpdate.forEach(text => {
+                    const q = this.data.questions.find(q => q.text === text);
+                    if(q) q.marks = parseInt(marksInput, 10);
+                });
+                
+                this.renderQuestions();
+                document.getElementById('bulk-marks').value = ''; 
+                this.sendRequest({ action: "bulkUpdateMarks", questions: textsToUpdate, marks: parseInt(marksInput, 10) }, true);
+            },
+
+            // --- Individual Actions (Questions) ---
+            updateIndividualMark(encodedText, newMark) {
+                const text = decodeURIComponent(encodedText);
+                const q = this.data.questions.find(q => q.text === text);
+                if (q) {
+                    q.marks = parseInt(newMark, 10) || 1;
+                    this.sendRequest({ action: "updateQuestionMarks", text: text, marks: q.marks }, true);
+                }
+            },
+
+            toggleQuestionVisibility(encodedText, isChecked) {
+                const text = decodeURIComponent(encodedText);
+                const q = this.data.questions.find(q => q.text === text);
+                if (q) {
+                    q.isActive = isChecked;
+                    this.updateDashboard(); 
+                    this.renderQuestions(); 
+                    this.sendRequest({ action: "toggleQuestionVisibility", text: text, isActive: isChecked }, true);
+                }
+            },
+
+            // --- API Communication ---
+            sendRequest(payload, skipFetch = false) {
+                if(!skipFetch) document.getElementById('data-loader').classList.remove('hidden');
+                
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if(result.status !== "success") {
+                        console.error("Action failed: " + (result.message || "Unknown error"));
+                        if(!skipFetch) this.fetchData(); 
+                    } else if(!skipFetch) {
+                        this.fetchData(); 
+                    } else {
+                        document.getElementById('data-loader').classList.add('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('data-loader').classList.add('hidden');
+                });
+            },
+
+            // --- Modal Forms for Questions ---
+            openAddQuestion() {
+                const defaultMarks = this.data.settings.marksPerQuestion || 1;
+                document.getElementById('modal-title').innerText = "Create New Question";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="block text-sm font-semibold text-slate-700">Subject / Category 
+                            <input type="text" id="q-category" class="modal-input" placeholder="e.g. Science">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">Marks for Question
+                            <input type="number" id="q-marks" class="modal-input" value="${defaultMarks}" min="1">
+                        </label>
+                    </div>
+                    <label class="block text-sm font-semibold text-slate-700 mt-3">Question Text 
+                        <textarea id="q-text" class="modal-input h-24 resize-none" placeholder="Type the question here..."></textarea>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                        <label class="block text-sm font-semibold text-slate-700">Option 1 <input type="text" id="q-opt1" class="modal-input" placeholder="First option"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 2 <input type="text" id="q-opt2" class="modal-input" placeholder="Second option"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 3 <input type="text" id="q-opt3" class="modal-input" placeholder="Third option"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 4 <input type="text" id="q-opt4" class="modal-input" placeholder="Fourth option"></label>
+                    </div>
+                    <label class="block text-sm font-semibold text-slate-700 mt-4">Correct Answer 
+                        <select id="q-correct" class="modal-input bg-white border-brand-200">
+                            <option value="1">Option 1</option>
+                            <option value="2">Option 2</option>
+                            <option value="3">Option 3</option>
+                            <option value="4">Option 4</option>
+                        </select>
+                    </label>
+                `;
+                document.getElementById('modal-save-btn').onclick = () => {
+                    const payload = { 
+                        action: "addQuestion", 
+                        category: document.getElementById('q-category').value.trim(), 
+                        text: document.getElementById('q-text').value.trim(), 
+                        opt1: document.getElementById('q-opt1').value.trim(), 
+                        opt2: document.getElementById('q-opt2').value.trim(), 
+                        opt3: document.getElementById('q-opt3').value.trim(), 
+                        opt4: document.getElementById('q-opt4').value.trim(), 
+                        correctAnswer: document.getElementById('q-correct').value,
+                        marks: parseInt(document.getElementById('q-marks').value, 10) || defaultMarks,
+                        isActive: true 
+                    };
+                    if(!payload.text || !payload.opt1) return alert("Please fill in the question text and at least the first option.");
+                    this.closeModal(); this.sendRequest(payload);
+                };
+                this.openModal();
+            },
+
+            openEditQuestion(encodedText) {
+                const text = decodeURIComponent(encodedText);
+                const q = this.data.questions.find(q => q.text === text);
+                if (!q) return;
+                
+                const marks = q.marks || this.data.settings.marksPerQuestion || 1;
+                
+                document.getElementById('modal-title').innerText = "Edit Question";
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="block text-sm font-semibold text-slate-700">Subject / Category 
+                            <input type="text" id="q-category" class="modal-input" value="${q.category}">
+                        </label>
+                        <label class="block text-sm font-semibold text-slate-700">Marks for Question
+                            <input type="number" id="q-marks" class="modal-input" value="${marks}" min="1">
+                        </label>
+                    </div>
+                    <label class="block text-sm font-semibold text-slate-700 mt-3">Question Text 
+                        <textarea id="q-text" class="modal-input h-24 resize-none">${q.text}</textarea>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                        <label class="block text-sm font-semibold text-slate-700">Option 1 <input type="text" id="q-opt1" class="modal-input" value="${q.options[0]}"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 2 <input type="text" id="q-opt2" class="modal-input" value="${q.options[1]}"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 3 <input type="text" id="q-opt3" class="modal-input" value="${q.options[2]}"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Option 4 <input type="text" id="q-opt4" class="modal-input" value="${q.options[3]}"></label>
+                    </div>
+                    <label class="block text-sm font-semibold text-slate-700 mt-4">Correct Answer 
+                        <select id="q-correct" class="modal-input bg-white border-brand-200">
+                            <option value="1" ${q.correctAnswerIndex === 0 ? 'selected' : ''}>Option 1</option>
+                            <option value="2" ${q.correctAnswerIndex === 1 ? 'selected' : ''}>Option 2</option>
+                            <option value="3" ${q.correctAnswerIndex === 2 ? 'selected' : ''}>Option 3</option>
+                            <option value="4" ${q.correctAnswerIndex === 3 ? 'selected' : ''}>Option 4</option>
+                        </select>
+                    </label>
+                `;
+                document.getElementById('modal-save-btn').onclick = () => {
+                    this.closeModal();
+                    this.sendRequest({ 
+                        action: "editQuestion", 
+                        oldText: q.text, 
+                        category: document.getElementById('q-category').value.trim(), 
+                        text: document.getElementById('q-text').value.trim(), 
+                        opt1: document.getElementById('q-opt1').value.trim(), 
+                        opt2: document.getElementById('q-opt2').value.trim(), 
+                        opt3: document.getElementById('q-opt3').value.trim(), 
+                        opt4: document.getElementById('q-opt4').value.trim(), 
+                        correctAnswer: document.getElementById('q-correct').value,
+                        marks: parseInt(document.getElementById('q-marks').value, 10) || marks,
+                        isActive: q.isActive !== false 
+                    });
+                };
+                this.openModal();
+            },
+
+            deleteQuestion(encodedText) {
+                const text = decodeURIComponent(encodedText);
+                if(confirm("Warning: Are you absolutely sure you want to delete this question?")) {
+                    this.data.questions = this.data.questions.filter(q => q.text !== text);
+                    this.updateDashboard(); this.renderQuestions();
+                    this.sendRequest({ action: "deleteQuestion", text: text }, true);
+                }
+            },
+
+            // --- Edit Student with Subject Assignment ---
+            openEditStudent(mobile) {  
+                const student = this.data.students.find(s => s.Mobile == mobile);
+                if (!student) return;
+                
+                const rawStatus = String(student.Status).toLowerCase();
+                const cats = this.getUniqueCategories();
+                const allowed = student.AllowedSubjects ? String(student.AllowedSubjects).split(',').filter(Boolean) : [];
+                
+                let checkboxesHtml = cats.map(c => `
+                    <label class="flex items-center gap-2 text-sm text-slate-600 p-1.5 hover:bg-white rounded cursor-pointer transition">
+                        <input type="checkbox" class="subject-check custom-checkbox" value="${c}" ${allowed.includes(c) ? 'checked' : ''}>
+                        <span class="font-medium">${c}</span>
+                    </label>
+                `).join('');
+
+                if(cats.length === 0) checkboxesHtml = `<p class="text-xs text-slate-400 italic p-2">No subjects available. Add questions first.</p>`;
+                
+                document.getElementById('modal-title').innerText = "Edit Student Profile";
+                document.getElementById('modal-body').innerHTML = `
+                    <label class="block text-sm font-semibold text-slate-700">Full Name
+                        <input type="text" id="edit-stu-name" class="modal-input" value="${student.Name}">
+                    </label>
+                    <label class="block text-sm font-semibold text-slate-700 mt-3">Mobile Number
+                        <input type="text" id="edit-stu-mobile" class="modal-input" value="${student.Mobile}">
+                    </label>
+                    <label class="block text-sm font-semibold text-slate-700 mt-3">Allowed Exam Attempts
+                        <input type="number" min="1" id="edit-stu-attempts" class="modal-input" value="${student.AllowedAttempts || 1}">
+                    </label>
+                    
+                    <label class="block text-sm font-semibold text-slate-700 mt-4">Assigned Subjects
+                        <div class="mt-2 max-h-36 overflow-y-auto border border-slate-200 p-2 rounded-lg bg-slate-50 shadow-inner">
+                            ${checkboxesHtml}
+                        </div>
+                        <p class="text-xs text-brand-600 mt-1 font-medium">&#9432; If no subjects are selected, the student has access to ALL subjects by default.</p>
+                    </label>
+
+                    <label class="block text-sm font-semibold text-slate-700 mt-4 pt-4 border-t border-slate-100">Approval Status
+                        <select id="edit-stu-status" class="modal-input bg-white ${rawStatus === 'blocked' ? 'border-rose-500 text-rose-700' : ''}">
+                            <option value="pending" ${rawStatus === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="approved" ${rawStatus === 'approved' ? 'selected' : ''}>Approved</option>
+                            <option value="blocked" ${rawStatus === 'blocked' ? 'selected' : ''}>Blocked (Cheating Detected)</option>
+                        </select>
+                    </label>
+                `;
+                
+                document.getElementById('modal-save-btn').onclick = () => {
+                    this.closeModal();
+                    
+                    const selectedSubjects = Array.from(document.querySelectorAll('.subject-check:checked')).map(cb => cb.value).join(',');
+
+                    const payload = { 
+                        action: "editStudent", 
+                        oldMobile: mobile, 
+                        newName: document.getElementById('edit-stu-name').value.trim(), 
+                        newMobile: document.getElementById('edit-stu-mobile').value.trim(), 
+                        newStatus: document.getElementById('edit-stu-status').value, 
+                        newAttempts: document.getElementById('edit-stu-attempts').value,
+                        newSubjects: selectedSubjects
+                    };
+                    
+                    this.sendRequest(payload, true);
+                    
+                    student.Name = payload.newName; 
+                    student.Mobile = payload.newMobile; 
+                    student.Status = payload.newStatus; 
+                    student.AllowedAttempts = parseInt(payload.newAttempts, 10);
+                    student.AllowedSubjects = selectedSubjects;
+                    
+                    this.renderStudents(); this.updateDashboard();
+                };
+                this.openModal();
+            },
+            
+            renderResults() { 
+                const tbody = document.getElementById('results-table-body');
+                tbody.innerHTML = '';
+                
+                const searchInput = document.getElementById('search-results');
+                const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+                let displayResults = this.data.examScores;
+                if (searchTerm) {
+                    displayResults = displayResults.filter(score => {
+                        const dateObj = new Date(score.Timestamp);
+                        const dateStr = !isNaN(dateObj) ? (dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})) : String(score.Timestamp);
+                        return String(score.Name).toLowerCase().includes(searchTerm) || String(score.Mobile).toLowerCase().includes(searchTerm) || dateStr.toLowerCase().includes(searchTerm);
+                    });
+                }
+
+                if(displayResults.length === 0) {
+                    return tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400">No exam results found matching your search.</td></tr>`;
+                }
+
+                displayResults.forEach(score => {
+                    const dateObj = new Date(score.Timestamp);
+                    const dateStr = !isNaN(dateObj) ? (dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})) : score.Timestamp;
+                    
+                    // SMART PARSING FOR ADMIN DASHBOARD
+                    let rawScore = String(score.Score).trim();
+                    let numScore = parseFloat(rawScore.replace(/[^0-9.-]/g, '')) || 0;
+                    if (numScore <= 1 && rawScore !== "0" && !rawScore.includes('%')) {
+                        numScore = numScore * 100;
+                        rawScore = numScore + '%';
+                    } else if (!rawScore.includes('%') && rawScore !== "") {
+                        rawScore = rawScore + '%';
+                    }
+
+                    const sColor = numScore >= 80 ? 'text-emerald-600' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600';
+
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td class="px-6 py-4 text-slate-500 text-xs">${dateStr}</td>
+                            <td class="px-6 py-4 font-medium text-slate-800">${score.Name}</td>
+                            <td class="px-6 py-4 text-slate-500 font-mono text-xs">${score.Mobile}</td>
+                            <td class="px-6 py-4 font-bold ${sColor} text-base">${rawScore}</td>
+                            <td class="px-6 py-4 text-slate-600">${score.TimeTaken}</td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="adminApp.openEditResult('${score.Timestamp}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">Edit</button>
+                                    <button onclick="adminApp.deleteResult('${score.Timestamp}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                });
+            },
+
+            openEditResult(timestamp) {
+                const result = this.data.examScores.find(r => r.Timestamp == timestamp);
+                if (!result) return;
+
+                // Format the score for the input field
+                let rawScore = String(result.Score).trim();
+                let numScore = parseFloat(rawScore.replace(/[^0-9.-]/g, '')) || 0;
+                if (numScore <= 1 && rawScore !== "0" && !rawScore.includes('%')) {
+                    numScore = numScore * 100;
+                    rawScore = numScore + '%';
+                } else if (!rawScore.includes('%') && rawScore !== "") {
+                    rawScore = rawScore + '%';
+                }
+
+                document.getElementById('modal-title').innerText = "Modify Exam Result";
+                document.getElementById('modal-body').innerHTML = `
+                    <label class="block text-sm font-semibold text-slate-700">Student Name <input type="text" id="edit-res-name" class="modal-input" value="${result.Name}"></label>
+                    <label class="block text-sm font-semibold text-slate-700 mt-3">Mobile Number <input type="text" id="edit-res-mobile" class="modal-input" value="${result.Mobile}"></label>
+                    <div class="grid grid-cols-2 gap-4 mt-3">
+                        <label class="block text-sm font-semibold text-slate-700">Score <input type="text" id="edit-res-score" class="modal-input font-bold" value="${rawScore}"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Time Taken <input type="text" id="edit-res-time" class="modal-input" value="${result.TimeTaken}"></label>
+                    </div>
+                `;
+                document.getElementById('modal-save-btn').onclick = () => {
+                    this.closeModal();
+                    this.sendRequest({ action: "editResult", timestamp: timestamp, newName: document.getElementById('edit-res-name').value.trim(), newMobile: document.getElementById('edit-res-mobile').value.trim(), newScore: document.getElementById('edit-res-score').value.trim(), newTime: document.getElementById('edit-res-time').value.trim() }, true);
+                    result.Name = document.getElementById('edit-res-name').value.trim(); result.Mobile = document.getElementById('edit-res-mobile').value.trim(); result.Score = document.getElementById('edit-res-score').value.trim(); result.TimeTaken = document.getElementById('edit-res-time').value.trim();
+                    this.renderResults();
+                };
+                this.openModal();
+            },
+            
+            renderSettings() {
+                document.getElementById('setting-duration').value = this.data.settings.duration || 60;
+                document.getElementById('setting-marks').value = this.data.settings.marksPerQuestion || 1;
+            },
+
+            saveSettings() {
+                const duration = document.getElementById('setting-duration').value;
+                const marks = document.getElementById('setting-marks').value;
+                this.data.settings.duration = duration; this.data.settings.marksPerQuestion = marks;
+                this.sendRequest({ action: "saveSettings", duration: duration, marksPerQuestion: marks }, true);
+                alert("Exam Configurations Saved Successfully!");
+            },
+
+            deleteStudent(mobile) {
+                if(confirm("Warning: Are you absolutely sure you want to delete this student from the database?")) {
+                    this.data.students = this.data.students.filter(s => s.Mobile != mobile);
+                    this.updateDashboard(); this.renderStudents();
+                    this.sendRequest({ action: "deleteStudent", studentMobile: mobile }, true);
+                }
+            },
+            
+            approveStudent(mobile) {
+                const student = this.data.students.find(s => s.Mobile == mobile);
+                if(student) student.Status = 'approved';
+                this.updateDashboard(); this.renderStudents();
+                this.sendRequest({ action: "approveStudent", studentMobile: mobile }, true);
+            },
+
+            deleteResult(timestamp) {
+                if(confirm("Warning: Are you absolutely sure you want to permanently delete this exam result?")) {
+                    this.data.examScores = this.data.examScores.filter(r => r.Timestamp != timestamp);
+                    this.updateDashboard(); this.renderResults();
+                    this.sendRequest({ action: "deleteResult", timestamp: timestamp }, true);
+                }
+            },
+            
+            closeModal() { 
+                const modal = document.getElementById('edit-modal');
+                modal.classList.remove('flex'); modal.classList.add('hidden'); 
+            },
+            
+            openModal() {
+                const modal = document.getElementById('edit-modal');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => adminApp.init());
+    </script>
+</body>
+</html>

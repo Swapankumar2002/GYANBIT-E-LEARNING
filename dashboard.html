@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Gyanbit Pvt. Ltd.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js" onerror="this.onerror=null; window.particlesFailed=true;"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap');
+        
+        :root { 
+            --primary: #2563eb; 
+            --primary-dark: #1e40af;
+            --sidebar-width: 260px; 
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        
+        body { 
+            min-height: 100vh; 
+            background: #f1f5f9; 
+            display: flex; 
+            overflow-x: hidden; 
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            background: white; 
+            height: 100vh; 
+            position: fixed; 
+            left: 0; top: 0; 
+            padding: 30px 20px; 
+            box-shadow: 4px 0 20px rgba(0,0,0,0.05); 
+            z-index: 1000; 
+            display: flex; flex-direction: column; 
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .sidebar.active { transform: translateX(0); }
+        
+        .brand { 
+            font-family: 'Exo 2'; font-size: 24px; font-weight: 700; color: var(--primary); 
+            margin-bottom: 40px; display: flex; align-items: center; gap: 10px; text-decoration: none; 
+        }
+        
+        .nav-item { 
+            display: flex; align-items: center; gap: 15px; padding: 14px 15px; 
+            color: #64748b; text-decoration: none; margin-bottom: 8px; 
+            font-weight: 500; border-radius: 12px; transition: 0.3s;
+        }
+        
+        .nav-item:hover, .nav-item.active { background: #eff6ff; color: var(--primary); }
+        .logout-btn { margin-top: auto; background: #fef2f2; color: #ef4444; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; transition: margin-left 0.3s ease; }
+        
+        .dashboard-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 40px; background: white; padding: 20px 30px; 
+            border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+        }
+        
+        .mobile-menu-btn { display: none; font-size: 24px; color: #333; cursor: pointer; }
+
+        /* --- GRID & BUTTONS --- */
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        
+        .action-btn { 
+            background: white; padding: 30px 20px; border-radius: 20px; text-align: center; 
+            display: none; flex-direction: column; align-items: center; gap: 15px; 
+            text-decoration: none; color: #333; transition: 0.3s; cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        
+        .action-btn:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15); }
+        .action-btn i { font-size: 28px; color: var(--primary); background: #eff6ff; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+
+        /* VISIBILITY CLASSES */
+        .admin-only, .staff-only { display: none; } 
+        
+        /* --- MODALS (Shared Styles) --- */
+        .modal-backdrop { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 2000; 
+            display: none; justify-content: center; align-items: center; 
+        }
+        .modal-backdrop.active { display: flex; }
+        .modal-content { 
+            background: white; padding: 25px; border-radius: 15px; 
+            width: 90%; max-width: 500px; position: relative;
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        /* --- ID CARD SPECIFIC STYLES --- */
+        .id-card-wrapper {
+            width: 100%; max-width: 320px; margin: 0 auto;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+            border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden; border: 1px solid #e2e8f0; position: relative;
+            text-align: center; padding-bottom: 20px;
+        }
+        .id-header { height: 80px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Exo 2'; font-weight: 700; font-size: 20px; }
+        .id-avatar {
+            width: 80px; height: 80px; background: white; border-radius: 50%; 
+            margin: -40px auto 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: var(--primary); font-weight: 700; border: 4px solid white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .id-info { padding: 0 20px; text-align: left; font-size: 13px; }
+        .id-row { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 8px 0; }
+        .id-label { color: #64748b; font-weight: 500; }
+        .id-val { font-weight: 600; color: #333; }
+        .id-role-badge { 
+            background: #eff6ff; color: var(--primary); padding: 4px 12px; 
+            border-radius: 20px; font-size: 11px; font-weight: 700; 
+            display: inline-block; margin-bottom: 15px; text-transform: uppercase;
+        }
+        
+        /* RESPONSIVE MEDIA QUERIES */
+        @media (max-width: 768px) {
+            :root { --sidebar-width: 0px; }
+            .sidebar { transform: translateX(-100%); width: 260px; }
+            .sidebar.active { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; }
+            .mobile-menu-btn { display: block; }
+            .action-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .dashboard-header { padding: 15px; flex-direction: row; }
+            .welcome-text h1 { font-size: 20px; }
+        }
+        
+        /* SEARCH RESULTS & PERMISSIONS */
+        .search-results { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-top: 5px; display: none; border-radius: 8px; }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .search-item:hover { background: #f8fafc; color: var(--primary); }
+        .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; max-height: 250px; overflow-y: auto; background: #f8fafc; padding: 10px; border-radius: 8px; }
+        .perm-grid label { font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        
+        /* Custom Scrollbar for Perm Grid */
+        .perm-grid::-webkit-scrollbar { width: 6px; }
+        .perm-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="particles-js" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;"></div>
+<div class="modal-backdrop" onclick="closeSidebar()" id="sidebarOverlay" style="z-index: 999; background: rgba(0,0,0,0.5);"></div>
+
+<div class="sidebar" id="sidebar">
+    <a href="#" class="brand"><i class="fas fa-layer-group"></i> Gyanbit</a>
+    <a href="#" class="nav-item active"><i class="fas fa-th-large"></i> Dashboard</a>
+    
+    <div id="staff-menu" class="staff-only">
+        <div style="font-size:11px; color:#aaa; margin:15px 0 5px 10px; font-weight:700;">ADMINISTRATION</div>
+        <a href="admin.html" class="nav-item admin-only"><i class="fas fa-users-cog"></i> Users DB</a>
+    </div>
+    <a href="#" onclick="logout()" class="nav-item logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+</div>
+
+<div class="main-content">
+    <div class="dashboard-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+            <div class="welcome-text">
+                <h1 id="welcome-msg" style="font-size: 22px; color: #1e293b; margin: 0;">Dashboard</h1>
+                <p style="color: #64748b; font-size: 13px; margin: 0;">Welcome back</p>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <span id="user-name" style="font-weight:700; display:block; color: #1e293b;">User</span>
+            <span id="user-role" style="font-size:12px; background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:10px;">Student</span>
+        </div>
+    </div>
+
+    <div id="staff-section" class="staff-only">
+        <h3 style="margin-bottom:15px; color:#333; font-size: 16px;">Admin & Staff Controls</h3>
+        <div class="action-grid">
+            <div onclick="openAccessModal()" class="action-btn admin-only" id="btn-manage-access" style="border: 2px dashed var(--primary); background:#f0f9ff;">
+                <i class="fas fa-user-lock" style="background: var(--primary); color: white;"></i> 
+                <span>Manage Access</span>
+            </div>
+            
+            <a href="admin.html" class="action-btn admin-only" id="btn-user-db"><i class="fas fa-database"></i> <span>User DB</span></a>
+            <a href="admin-master.html" class="action-btn admin-only" id="btn-admin-master-payment"><i class="fas fa-database"></i> <span>ADMIN MASTER PAYMENT</span></a>
+            <a href="live-student-exam-traking.html" class="action-btn admin-only" id="btn-live-student-exam-traking"><i class="fas fa-database"></i> <span>LIVE STUDENT EXAM TRACKING</span></a>
+            <a href="admin-data-upload.html" class="action-btn admin-only" id="btn-admin-data-upload"><i class="fas fa-database"></i> <span>ADMIN ROADMAP DATA UPLOAD</span></a>
+            <a href="ROADMAP.html" class="action-btn admin-only" id="btn-roadmap"><i class="fas fa-map"></i> <span>ROADMAP</span></a>
+            <a href="Project-payment.html" class="action-btn admin-only" id="btn-project-payment"><i class="fas fa-file-invoice-dollar"></i> <span>Project Payment</span></a>
+            <a href="notice-board.html" class="action-btn" id="btn-post-notice"><i class="fas fa-bullhorn"></i> <span>Post Notice</span></a>
+            <a href="internship-revenue.html" class="action-btn" id="btn-internship-revenue"><i class="fas fa-chart-pie"></i> <span>Internship Revenue</span></a>
+            <a href="Client-Order.html" class="action-btn" id="btn-client-order"><i class="fas fa-file-invoice-dollar"></i> <span>Client Order</span></a>
+            <a href="contact_requests.html" class="action-btn" id="btn-contact-req"><i class="fas fa-envelope-open-text"></i> <span>Contact Requests</span></a>
+            <a href="INTERNSHIP-UPLODE.HTML" class="action-btn admin-only" id="btn-intern-data"><i class="fas fa-tasks"></i> <span>Internship Data</span></a>
+            <a href="Certificate-data.html" class="action-btn admin-only" id="btn-cert-data"><i class="fas fa-award"></i> <span>Certificate Data</span></a>
+            <a href="upload_course.html" class="action-btn admin-only" id="btn-upload-course"><i class="fas fa-cloud-upload-alt"></i> <span>Upload Course</span></a>
+            <a href="team.html" class="action-btn admin-only" id="btn-upload-member"><i class="fas fa-user-plus"></i> <span>Upload Member</span></a>
+
+            <a href="exam-app.html" class="action-btn admin-only" id="btn-exam-app"><i class="fas fa-laptop-code"></i> <span>Student exam page</span></a>
+            <a href="exam-admin.html" class="action-btn admin-only" id="btn-exam-admin"><i class="fas fa-sliders-h"></i> <span>exam control panal</span></a>
+            <a href="uplode-question.html" class="action-btn admin-only" id="btn-upload-question"><i class="fas fa-file-upload"></i> <span>Uplode Question</span></a>
+            <a href="check-result.html" class="action-btn admin-only" id="btn-check-result"><i class="fas fa-poll"></i> <span>exam Result</span></a>
+            
+        </div>
+        <hr style="margin:40px 0; border-top:1px solid #e2e8f0;">
+    </div>
+
+    <h3 style="margin-bottom:15px; color:#333; font-size: 16px;">My Services</h3>
+    <div class="action-grid">
+        <div onclick="openIDModal()" class="action-btn" id="btn-id-card"><i class="fas fa-id-card"></i> <span>ID Card</span></div>
+        <a href="internship.html" class="action-btn" id="btn-enroll-intern"><i class="fas fa-laptop-code"></i> <span>Enroll Internship</span></a>
+        <a href="apply_course.html" class="action-btn" id="btn-apply-course"><i class="fas fa-book-reader"></i> <span>Apply for Course</span></a>
+        <a href="student_portal.html" class="action-btn" id="btn-course-cert"><i class="fas fa-certificate"></i> <span>Course Certificate</span></a>
+        <a href="dow_cer.html" class="action-btn" id="btn-intern-cert"><i class="fas fa-certificate"></i> <span>Internship Certificate</span></a>
+        <a href="contuct.html" class="action-btn" id="btn-help-desk"><i class="fas fa-headset"></i> <span>Help Desk</span></a>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="accessModal">
+    <div class="modal-content">
+        <h3 style="margin-bottom:15px;">Manage User Access</h3>
+        <input type="text" id="search-input" placeholder="Search Email or Name..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; outline:none;" onkeyup="searchUser()">
+        <div class="search-results" id="search-results"></div>
+        
+        <div id="selected-user" style="display:none; margin-top:10px; padding:10px; background:#f0f9ff; border-radius:8px;">
+            <span style="font-size:12px; color:#0284c7;">Selected:</span>
+            <div id="sel-email" style="font-weight:bold; color:#0c4a6e;"></div>
+        </div>
+
+        <div class="perm-grid">
+            <label><input type="checkbox" value="btn-post-notice"> Post Notice</label>
+            <label><input type="checkbox" value="btn-client-order"> Client Order</label>
+            <label><input type="checkbox" value="btn-contact-req"> Contact Req</label>
+            <label><input type="checkbox" value="btn-user-db"> User DB</label>
+            <label><input type="checkbox" value="btn-live-student-exam-traking"> LIVE STUDENT EXAM TRACKING</label>
+            <label><input type="checkbox" value="btn-admin-data-upload"> ROADMAP DATA UPLOAD</label>
+            <label><input type="checkbox" value="btn-roadmap"> ROADMAP </label>
+            <label><input type="checkbox" value="btn-admin-master-payment"> ADMIN MASTER PAYMENT</label>
+            <label><input type="checkbox" value="btn-project-payment"> PROJECT PAYMENT</label>
+            <label><input type="checkbox" value="btn-internship-revenue"> Internship Revenue</label>
+            <label><input type="checkbox" value="btn-intern-data"> Intern Data</label>
+            <label><input type="checkbox" value="btn-cert-data"> Cert Data</label>
+            <label><input type="checkbox" value="btn-upload-course"> Upload Course</label>
+            <label><input type="checkbox" value="btn-upload-member"> Upload Member</label>
+            
+            <label><input type="checkbox" value="btn-exam-app"> Student exam page</label>
+            <label><input type="checkbox" value="btn-exam-admin"> exam control panal</label>
+            <label><input type="checkbox" value="btn-upload-question"> Uplode Question</label>
+            <label><input type="checkbox" value="btn-check-result"> exam Result</label>
+
+            <label><input type="checkbox" value="btn-id-card"> ID Card</label>
+            <label><input type="checkbox" value="btn-enroll-intern"> Internship</label>
+            <label><input type="checkbox" value="btn-apply-course"> Apply Course</label>
+            <label><input type="checkbox" value="btn-course-cert"> Course Cert</label>
+            <label><input type="checkbox" value="btn-intern-cert"> Intern Cert</label>
+            <label><input type="checkbox" value="btn-help-desk"> Help Desk</label>
+        </div>
+        
+        <button onclick="savePermissions()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight: 500;">Save Changes</button>
+        <button onclick="closeAccessModal()" style="width:100%; background:#f1f5f9; color:#333; border:none; padding:12px; border-radius:8px; margin-top:10px; cursor:pointer; font-weight: 500;">Close</button>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="idCardModal">
+    <div class="modal-content" style="text-align: center;">
+        <h3 style="margin-bottom:20px;">Your Digital ID</h3>
+        
+        <div class="id-card-wrapper" id="id-card-visual">
+            <div class="id-header">GYANBIT PVT. LTD.</div>
+            <div class="id-avatar" id="card-avatar">U</div>
+            <h2 id="card-name" style="margin: 5px 0 0; font-size:18px;">User Name</h2>
+            <div id="card-role" class="id-role-badge">Student</div>
+            
+            <div class="id-info">
+                <div class="id-row"><span class="id-label">ID No:</span> <span class="id-val" id="card-id-no">GB-000</span></div>
+                <div class="id-row"><span class="id-label">Email:</span> <span class="id-val" id="card-email">email@ex.com</span></div>
+                <div class="id-row"><span class="id-label">Mobile:</span> <span class="id-val" id="card-mobile">+91 999...</span></div>
+                <div class="id-row"><span class="id-label">Valid:</span> <span class="id-val" id="card-valid">12/2026</span></div>
+            </div>
+        </div>
+
+        <button onclick="downloadIDCard()" style="width:100%; background:var(--primary); color:white; border:none; padding:12px; border-radius:8px; margin-top:20px; cursor:pointer; font-weight: 500;">
+            <i class="fas fa-download"></i> Download PNG
+        </button>
+        <button onclick="closeIDModal()" style="width:100%; background:#f1f5f9; color:#333; border:none; padding:12px; border-radius:8px; margin-top:10px; cursor:pointer; font-weight: 500;">Close</button>
+    </div>
+</div>
+
+<script>
+// --- PASTE YOUR URL HERE ---
+const API_URL = "https://script.google.com/macros/s/AKfycby8jAkAtdK8VoDSENkaxMiBkFU2wlYssEbdicS4MbOu5mCbuRmzrOPZ6ob6RD_rPjxH/exec";
+let ALL_USERS = [];
+let CURRENT_USER = {};
+
+window.onload = function() {
+    if (!window.particlesFailed && typeof particlesJS !== 'undefined') {
+        particlesJS("particles-js", { "particles": { "number": { "value": 60 }, "color": { "value": ["#0ea5e9"] }, "line_linked": { "enable": true, "opacity": 0.3 } } });
+    }
+
+    let cachedUser = null;
+    try {
+        const raw = localStorage.getItem('gyanbit_user');
+        if (raw) cachedUser = JSON.parse(raw);
+    } catch(e) {}
+
+    if (!cachedUser) { window.location.href = 'login.html'; return; }
+
+    CURRENT_USER = cachedUser; 
+    updateDashboard(cachedUser);
+
+    fetch(`${API_URL}?type=users`)
+    .then(res => res.json())
+    .then(users => {
+        ALL_USERS = users;
+        const freshUser = users.find(u => u.email.toLowerCase() === cachedUser.email.toLowerCase());
+        if (freshUser) {
+            CURRENT_USER = freshUser;
+            updateDashboard(freshUser);
+            localStorage.setItem('gyanbit_user', JSON.stringify(freshUser));
+        }
+    })
+    .catch(err => console.log("Offline or API Error:", err));
+};
+
+function updateDashboard(user) {
+    const name = user.name || user.username || "User";
+    const role = user.role || "Student";
+    
+    document.getElementById('welcome-msg').innerText = `Hello, ${name.split(' ')[0]}!`;
+    document.getElementById('user-name').innerText = name;
+    document.getElementById('user-role').innerText = role;
+
+    document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
+
+    const perms = (user.permissions || "").split(',').map(p => p.trim()).filter(p => p !== "");
+    perms.forEach(id => {
+        const btn = document.getElementById(id);
+        if(btn) btn.style.display = 'flex';
+    });
+
+    if (role.toLowerCase().includes('admin')) {
+        document.querySelectorAll('.staff-only').forEach(el => el.style.display = 'block');
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+        document.getElementById('btn-manage-access').style.display = 'flex';
+        
+        ['btn-id-card', 'btn-enroll-intern', 'btn-help-desk'].forEach(id => {
+            const btn = document.getElementById(id);
+            if(btn) btn.style.display = 'flex';
+        });
+    } else if (perms.length > 0) {
+        document.querySelectorAll('.staff-only').forEach(el => el.style.display = 'block');
+    } else {
+        ['btn-id-card', 'btn-enroll-intern', 'btn-help-desk', 'btn-apply-course'].forEach(id => {
+            const btn = document.getElementById(id);
+            if(btn) btn.style.display = 'flex';
+        });
+    }
+}
+
+// --- ID CARD LOGIC ---
+function openIDModal() {
+    const user = CURRENT_USER;
+    document.getElementById('card-name').innerText = user.name || "User";
+    document.getElementById('card-role').innerText = user.role || "Student";
+    document.getElementById('card-email').innerText = user.email;
+    document.getElementById('card-mobile').innerText = user.mobile || "N/A";
+    document.getElementById('card-avatar').innerText = (user.name || "U").charAt(0).toUpperCase();
+    
+    document.getElementById('card-id-no').innerText = "GB-" + Math.floor(100000 + Math.random() * 900000);
+    const date = new Date(); date.setFullYear(date.getFullYear() + 1);
+    document.getElementById('card-valid').innerText = date.toLocaleDateString();
+
+    document.getElementById('idCardModal').classList.add('active');
+}
+
+function closeIDModal() { document.getElementById('idCardModal').classList.remove('active'); }
+
+function downloadIDCard() {
+    const element = document.getElementById('id-card-visual');
+    html2canvas(element, { scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'Gyanbit_ID_Card.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+}
+
+// --- RESPONSIVE SIDEBAR ---
+function toggleSidebar() { 
+    document.getElementById('sidebar').classList.toggle('active'); 
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+function closeSidebar() { 
+    document.getElementById('sidebar').classList.remove('active'); 
+    document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+// --- ACCESS MANAGER ---
+function openAccessModal() { document.getElementById('accessModal').classList.add('active'); }
+function closeAccessModal() { document.getElementById('accessModal').classList.remove('active'); }
+
+function searchUser() {
+    const input = document.getElementById('search-input').value.toLowerCase();
+    const list = document.getElementById('search-results');
+    list.innerHTML = ''; list.style.display = 'none';
+    if(input.length < 2) return;
+
+    const matches = ALL_USERS.filter(u => u.email.toLowerCase().includes(input) || (u.name && u.name.toLowerCase().includes(input)));
+    if(matches.length > 0) {
+        list.style.display = 'block';
+        matches.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerText = `${u.name || 'User'} (${u.email})`;
+            div.onclick = () => selectUser(u);
+            list.appendChild(div);
+        });
+    }
+}
+
+function selectUser(user) {
+    document.getElementById('search-results').style.display = 'none';
+    document.getElementById('search-input').value = user.email;
+    document.getElementById('sel-email').innerText = user.email;
+    document.getElementById('selected-user').style.display = 'block';
+    
+    document.querySelectorAll('.perm-grid input').forEach(box => {
+        box.checked = (user.permissions || "").includes(box.value);
+    });
+}
+
+function savePermissions() {
+    const targetEmail = document.getElementById('sel-email').innerText;
+    if(!targetEmail) return alert("Select a user first by searching their email.");
+
+    const boxes = document.querySelectorAll('.perm-grid input:checked');
+    const perms = Array.from(boxes).map(b => b.value).join(',');
+    
+    const btn = document.querySelector('button[onclick="savePermissions()"]');
+    const originalText = btn.innerText;
+    btn.innerText = "Saving..."; btn.disabled = true;
+
+    const params = new URLSearchParams();
+    params.append('action', 'updatePermissions');
+    params.append('email', targetEmail);
+    params.append('permissions', perms);
+
+    fetch(API_URL, { method: 'POST', body: params })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        closeAccessModal();
+        btn.innerText = originalText; btn.disabled = false;
+        fetch(`${API_URL}?type=users`).then(res=>res.json()).then(u => ALL_USERS = u);
+    })
+    .catch(err => {
+        alert("Failed to save permissions.");
+        btn.innerText = originalText; btn.disabled = false;
+    });
+}
+
+function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+</script>
+</body>
+</html>

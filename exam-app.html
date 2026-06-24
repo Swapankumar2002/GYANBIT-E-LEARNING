@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Assessment Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f5f7fa', 100: '#e4e7eb', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        neutral: { 50: '#fafaf9', 100: '#f5f5f4', 800: '#292524', 900: '#1c1917' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #fafaf9; color: #292524; }
+        
+        .chart-container { position: relative; width: 100%; max-width: 100%; margin: 0 auto; height: 300px; max-height: 400px; }
+        
+        /* Smooth Custom Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .modal-pop { animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: scale(0.95); }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* Option Interactions */
+        .option-label { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(0); }
+        .option-label:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .option-radio:checked + .option-label { 
+            background-color: #eff6ff; 
+            border-color: #3b82f6; 
+            color: #1e3a8a; 
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); 
+            transform: translateY(-2px); 
+        }
+
+        .input-transition { transition: all 0.3s ease; }
+        .input-transition:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col items-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
+
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-neutral-100 relative slide-up">
+        
+        <div class="flex justify-end p-4 pb-0 z-10 w-full relative sm:absolute sm:top-4 sm:right-4" id="header-register-btn">
+            <button onclick="app.openRegisterModal()" class="bg-brand-50 text-brand-700 border border-brand-200 px-4 py-2 rounded-lg font-medium hover:bg-brand-100 hover:shadow-md transition-all duration-300 text-sm w-full sm:w-auto">
+                Register New Student
+            </button>
+        </div>
+
+        <div id="view-intro" class="p-6 sm:p-8 md:p-12 fade-in block mt-2 sm:mt-8">
+            <header class="text-center mb-8 slide-up delay-1">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-50 text-brand-600 text-3xl mb-4 shadow-inner transform transition hover:scale-110 duration-300">&#128221;</div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-neutral-900 mb-4 tracking-tight">Student Assessment</h1>
+                <p class="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto mb-2">Please verify your details to begin.</p>
+                <div id="loading-status" class="text-sm font-medium text-brand-600 animate-pulse mt-2">Connecting to database...</div>
+            </header>
+
+            <div class="max-w-md mx-auto bg-neutral-50 p-6 sm:p-8 rounded-2xl border border-neutral-200 shadow-sm mt-4 slide-up delay-2">
+                <h3 class="text-xl font-bold text-neutral-800 mb-5">Student Login</h3>
+                <div id="login-error" class="hidden mb-5 p-3 bg-rose-50 text-rose-600 text-sm rounded-lg border border-rose-100 leading-relaxed fade-in"></div>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-neutral-700 mb-1.5">Full Name</label>
+                        <input type="text" id="student-name" class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg outline-none input-transition" placeholder="Enter your full name" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-neutral-700 mb-1.5">Mobile Number</label>
+                        <input type="tel" id="student-mobile" class="w-full px-4 py-2.5 border border-neutral-300 rounded-lg outline-none input-transition" placeholder="Enter registered mobile number" required>
+                    </div>
+                    <button id="btn-verify" onclick="app.verifyStudent()" disabled class="w-full bg-neutral-300 text-neutral-500 cursor-not-allowed font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-300 text-lg flex justify-center items-center mt-4">
+                        <span id="verify-btn-text">Please wait...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-exam" class="p-5 sm:p-8 md:p-10 fade-in hidden flex flex-col min-h-[500px]">
+            <div class="bg-rose-50 text-rose-700 border border-rose-200 px-4 py-2 rounded-lg mb-6 text-sm font-bold flex items-center justify-center gap-2">
+                <i class="fas fa-video"></i> Live Proctoring & Anti-Cheat Active: Do not switch tabs or minimize the window!
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                <div class="text-neutral-500 font-medium tracking-wide text-sm uppercase flex flex-col">
+                    <span id="ui-student-display" class="text-brand-600 font-extrabold mb-1 text-base"></span>
+                    <span>Question <span id="ui-current-q" class="text-neutral-800 font-bold">1</span> of <span id="ui-total-q">0</span></span>
+                </div>
+                <div id="ui-timer" class="self-start sm:self-auto flex items-center text-rose-600 font-bold bg-rose-50 px-4 py-2 rounded-lg border border-rose-100 shadow-sm transition-colors duration-300">
+                    &#9202; <span id="time-display" class="ml-2 font-mono text-lg sm:text-xl tracking-wider">05:00</span>
+                </div>
+            </div>
+            
+            <div class="w-full bg-neutral-100 rounded-full h-2.5 mb-8 overflow-hidden shadow-inner">
+                <div id="ui-progress-bar" class="bg-brand-500 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            
+            <div id="q-anim-wrapper" class="flex-grow flex flex-col justify-center">
+                <h2 id="ui-question-text" class="text-xl sm:text-2xl font-bold text-neutral-900 mb-6 sm:mb-8 leading-relaxed"></h2>
+                <div id="ui-options-container" class="space-y-3 sm:space-y-4"></div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <button id="btn-prev" onclick="app.prevQuestion()" class="w-full sm:w-auto px-6 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-semibold hover:bg-neutral-50 transition-all duration-300 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed">&#8592; Previous</button>
+                <button id="btn-next" onclick="app.nextQuestion()" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-neutral-800 text-white font-semibold hover:bg-neutral-700 hover:shadow-lg transition-all duration-300">Next &#8594;</button>
+                <button id="btn-submit" onclick="app.confirmSubmit()" class="w-full sm:w-auto hidden px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all duration-300 shadow-md hover:shadow-lg">Submit Exam &#10003;</button>
+            </div>
+        </div>
+
+        <div id="view-blocked" class="hidden fade-in w-full max-w-2xl mx-auto my-10 p-4">
+            <div class="bg-white p-8 md:p-12 rounded-2xl border-t-4 border-rose-600 shadow-2xl text-center">
+                <div class="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                    <i class="fas fa-user-lock"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Exam Terminated</h2>
+                <p class="text-lg text-slate-600 mb-6">We detected that you switched tabs or left the exam window. As per our strict anti-cheating policy, your exam has been immediately terminated and your ID is now <span class="font-bold text-rose-600">BLOCKED</span>.</p>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-8 inline-block text-left shadow-sm">
+                    <p class="text-sm text-slate-700"><i class="fas fa-info-circle text-brand-500 mr-2"></i> To resume your assessment, you must contact your administrator to manually unblock your ID.</p>
+                </div>
+                <div>
+                    <button onclick="window.location.reload()" class="px-8 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition shadow-lg">Return to Home</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-results" class="p-5 sm:p-8 md:p-10 fade-in hidden">
+            <div class="text-center mb-10 slide-up delay-1">
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 mb-3"><span id="res-student-name" class="text-brand-600">Your</span> Results</h2>
+                <p class="text-neutral-500 text-lg" id="saving-status">Review your performance analytics below.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10">
+                <div class="bg-white border border-neutral-200 rounded-2xl p-6 text-center shadow-sm slide-up delay-1 hover:shadow-md transition duration-300">
+                    <div class="text-sm text-neutral-500 uppercase tracking-widest font-bold mb-2">Final Score</div>
+                    <div class="text-4xl sm:text-5xl font-black text-brand-600" id="res-score">0%</div>
+                </div>
+                <div class="bg-white border border-neutral-200 rounded-2xl p-6 text-center shadow-sm slide-up delay-2 hover:shadow-md transition duration-300">
+                    <div class="text-sm text-neutral-500 uppercase tracking-widest font-bold mb-2">Correct Answers</div>
+                    <div class="text-4xl sm:text-5xl font-black text-emerald-500" id="res-correct">0</div>
+                </div>
+                <div class="bg-white border border-neutral-200 rounded-2xl p-6 text-center shadow-sm slide-up delay-3 hover:shadow-md transition duration-300">
+                    <div class="text-sm text-neutral-500 uppercase tracking-widest font-bold mb-2">Time Taken</div>
+                    <div class="text-4xl sm:text-5xl font-black text-neutral-800 tracking-tight" id="res-time">00:00</div>
+                </div>
+            </div>
+
+            <div class="bg-neutral-50 rounded-2xl p-6 sm:p-8 mb-10 border border-neutral-200 slide-up delay-3">
+                <div class="mb-6 text-center sm:text-left">
+                    <h3 class="text-2xl font-bold text-neutral-900">Performance Analytics</h3>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                    <div class="w-full flex flex-col items-center">
+                        <div class="text-center font-semibold text-neutral-700 mb-3 bg-white px-4 py-1 rounded-full shadow-sm text-sm border border-neutral-100">Answer Distribution</div>
+                        <div class="chart-container"><canvas id="overviewChart"></canvas></div>
+                    </div>
+                    <div class="w-full flex flex-col items-center">
+                        <div class="text-center font-semibold text-neutral-700 mb-3 bg-white px-4 py-1 rounded-full shadow-sm text-sm border border-neutral-100">Category Proficiency</div>
+                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slide-up delay-3">
+                <h3 class="text-2xl font-bold text-neutral-900 mb-6 border-b border-neutral-200 pb-3">Detailed Question Review</h3>
+                <div id="review-container" class="space-y-4 sm:space-y-5"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="submit-modal" class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full mx-auto modal-pop">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-4">&#9888;</div>
+            <h3 class="text-2xl font-bold text-neutral-900 mb-2">Submit Assessment?</h3>
+            <p id="modal-warning-text" class="text-neutral-600 mb-8 leading-relaxed">Are you sure you want to submit your answers? You cannot change them after submission.</p>
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:space-x-3">
+                <button onclick="app.closeModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-neutral-600 bg-neutral-100 hover:bg-neutral-200 font-semibold transition">Cancel</button>
+                <button onclick="app.executeSubmit()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 text-white hover:bg-brand-500 font-bold transition shadow-md">Yes, Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="register-modal" class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full mx-auto modal-pop relative">
+            <button onclick="app.closeRegisterModal()" class="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-2xl font-bold text-neutral-900 mb-2">Registration</h3>
+            <p class="text-sm text-neutral-500 mb-6">Register your details below. Wait for admin approval to log in.</p>
+            
+            <div id="reg-error" class="hidden mb-4 text-sm text-rose-600 bg-rose-50 border border-rose-100 p-3.5 rounded-xl leading-relaxed fade-in font-medium"></div>
+            <div id="reg-success" class="hidden mb-4 text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl leading-relaxed fade-in font-medium"></div>
+            
+            <div class="space-y-4" id="reg-form-fields">
+                <input type="text" id="reg-name" class="w-full px-4 py-2.5 border border-neutral-300 rounded-xl input-transition" placeholder="Full Name">
+                <input type="tel" id="reg-mobile" class="w-full px-4 py-2.5 border border-neutral-300 rounded-xl input-transition" placeholder="Mobile Number">
+                
+                <button id="btn-submit-reg" onclick="app.submitRegistration()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-500 transition shadow-md mt-2">Submit Registration</button>
+                <button onclick="app.closeRegisterModal()" class="w-full text-neutral-500 font-semibold py-2 hover:text-neutral-800 transition">Cancel</button>
+            </div>
+            
+            <div id="reg-close-only" class="hidden mt-6">
+                <button onclick="app.closeRegisterModal()" class="w-full bg-neutral-800 text-white font-bold py-3 rounded-xl hover:bg-neutral-700 transition shadow-md">Return to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // PASTE YOUR BRAND NEW WEB APP URL HERE:
+        // ==========================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4F1a_cI6g93INWKzJxgsKBvM6h2Sjtyd9tR_-8oQo6NSB4JDtmXPMsG6d8W-_xcW16A/exec'; 
+
+        const examData = { timeLimitSeconds: 300, questions: [], students: [], completedMobiles: [] };
+        
+        const state = { 
+            studentName: "", 
+            studentMobile: "", 
+            studentData: null, 
+            isExamActive: false, 
+            currentIndex: 0, 
+            answers: [], 
+            timeRemaining: examData.timeLimitSeconds, 
+            timerInterval: null 
+        };
+
+        // --- NEW: WEBRTC GLOBAL VARIABLES ---
+        let studentProctoringPeer = null;
+        let dataConnectionToAdmin = null;
+
+        const app = {
+            init() { 
+                fetch(SCRIPT_URL)
+                    .then(response => {
+                        if(!response.ok) throw new Error("Network response was not ok. Status: " + response.status);
+                        return response.json();
+                    })
+                    .then(data => this.handleDataLoad(data))
+                    .catch(error => this.handleDataError(error));
+
+                // --- ANTI CHEAT LISTENERS ---
+                document.addEventListener("visibilitychange", () => {
+                    if (document.hidden && state.isExamActive) {
+                        // Notify Admin Immediately
+                        if (dataConnectionToAdmin) {
+                            dataConnectionToAdmin.send({ type: 'CHEAT_ALERT', reason: 'Switched Tabs / Window left' });
+                        }
+                        this.triggerAntiCheat(); // Lock locally
+                    }
+                });
+
+                window.addEventListener("blur", () => {
+                    if (state.isExamActive) {
+                        // Notify Admin Immediately
+                        if (dataConnectionToAdmin) {
+                            dataConnectionToAdmin.send({ type: 'CHEAT_ALERT', reason: 'Left Window Focus' });
+                        }
+                        this.triggerAntiCheat(); // Lock locally
+                    }
+                });
+            },
+
+            handleDataLoad(data) {
+                if (data.status === "error") {
+                    this.handleDataError(data.message);
+                    return;
+                }
+
+                // If admin provided custom duration in settings, apply it
+                if(data.settings && data.settings.duration) {
+                    examData.timeLimitSeconds = parseInt(data.settings.duration) * 60;
+                    state.timeRemaining = examData.timeLimitSeconds;
+                }
+
+                examData.questions = data.questions || [];
+                examData.students = data.students || [];
+                examData.completedMobiles = data.completedMobiles || [];
+                
+                if(examData.questions.length === 0) {
+                    this.handleDataError("No questions found. Check your 'Question' tab in Google Sheets.");
+                    return;
+                }
+
+                state.answers = new Array(examData.questions.length).fill(null);
+                document.getElementById('ui-total-q').innerText = examData.questions.length;
+
+                const statusText = document.getElementById('loading-status');
+                statusText.classList.add('hidden');
+
+                const btn = document.getElementById('btn-verify');
+                btn.classList.remove('bg-neutral-300', 'text-neutral-500', 'cursor-not-allowed');
+                btn.classList.add('bg-brand-600', 'hover:bg-brand-500', 'text-white', 'hover:shadow-lg');
+                btn.disabled = false;
+                document.getElementById('verify-btn-text').innerHTML = "Verify & Start Exam &#10140;";
+            },
+
+            handleDataError(error) {
+                const statusText = document.getElementById('loading-status');
+                statusText.classList.remove('animate-pulse');
+                const errorMsg = error && error.message ? error.message : typeof error === 'string' ? error : "Unknown network error";
+                
+                statusText.innerHTML = `<div class="mt-4 text-rose-600 font-semibold bg-rose-50 px-4 py-3 rounded-lg border border-rose-200 shadow-sm text-sm">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> <b>System Error:</b> ${errorMsg}<br>
+                    <span class="text-xs text-rose-500 mt-1 block">Check your Apps Script URL and make sure 'Who has access' is set to 'Anyone'.</span>
+                </div>`;
+            },
+
+            // --- REGISTRATION LOGIC ---
+            openRegisterModal() {
+                const modal = document.getElementById('register-modal');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+                document.getElementById('reg-error').classList.add('hidden');
+                document.getElementById('reg-success').classList.add('hidden');
+                document.getElementById('reg-form-fields').classList.remove('hidden');
+                document.getElementById('reg-close-only').classList.add('hidden');
+                document.getElementById('reg-name').value = ''; document.getElementById('reg-mobile').value = '';
+            },
+
+            closeRegisterModal() {
+                const modal = document.getElementById('register-modal');
+                modal.classList.add('hidden'); modal.classList.remove('flex');
+            },
+
+            submitRegistration() {
+                const name = document.getElementById('reg-name').value.trim();
+                const mobile = document.getElementById('reg-mobile').value.trim();
+                const errorDiv = document.getElementById('reg-error');
+                const btn = document.getElementById('btn-submit-reg');
+
+                if (!name || !mobile) {
+                    errorDiv.innerText = "Please fill in both fields.";
+                    errorDiv.classList.remove('hidden'); return;
+                }
+
+                errorDiv.classList.add('hidden');
+                btn.innerHTML = `<span class="animate-pulse">Submitting...</span>`;
+                btn.disabled = true;
+
+                const payload = { action: "register", studentName: name, studentMobile: mobile };
+
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(result => {
+                    btn.disabled = false; btn.innerText = "Submit Registration";
+                    if (result.status === "success") {
+                        document.getElementById('reg-form-fields').classList.add('hidden');
+                        document.getElementById('reg-success').innerHTML = `&#10003; ${result.message}`;
+                        document.getElementById('reg-success').classList.remove('hidden');
+                        document.getElementById('reg-close-only').classList.remove('hidden');
+                        examData.students.push({ Name: name, Mobile: mobile, Status: 'pending', AllowedAttempts: 1 });
+                    } else {
+                        errorDiv.innerText = result.message; errorDiv.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    btn.disabled = false; btn.innerText = "Submit Registration";
+                    errorDiv.innerText = "Failed to connect to server."; errorDiv.classList.remove('hidden');
+                });
+            },
+
+            // --- EXAM LOGIN LOGIC ---
+            verifyStudent() {
+                const nameInput = document.getElementById('student-name').value.trim();
+                const mobileInput = document.getElementById('student-mobile').value.trim();
+                
+                if (!nameInput || !mobileInput) return this.showLoginError("Please enter both your name and mobile number.");
+
+                const studentFound = examData.students.find(s => s.Mobile.toString() === mobileInput.toString());
+                if (!studentFound) return this.showLoginError("Mobile number not found. Please click 'Register New Student' above.");
+                
+                if (studentFound.Status.toLowerCase() === "blocked") return this.showLoginError("Your ID is BLOCKED due to a previous rule violation. Contact the admin to unlock your account.");
+                if (studentFound.Status === "pending") return this.showLoginError("Your registration is currently pending. You cannot appear for the exam until the admin approves you.");
+
+                const usedAttempts = examData.completedMobiles.filter(m => m.toString() === mobileInput.toString()).length;
+                const allowedAttempts = studentFound.AllowedAttempts || 1;
+                
+                if (usedAttempts >= allowedAttempts) return this.showLoginError(`You have reached your maximum allowed attempts (${allowedAttempts}). Please contact the admin.`);
+
+                // Login Successful!
+                state.studentName = nameInput;
+                state.studentMobile = mobileInput;
+                state.studentData = studentFound;
+
+                document.getElementById('ui-student-display').innerText = `${state.studentName} (${state.studentMobile})`;
+                document.getElementById('res-student-name').innerText = `${state.studentName}'s`;
+                document.getElementById('header-register-btn').classList.add('hidden'); 
+                
+                // Initialize Video connection BEFORE showing questions
+                this.startProctoringSession(state.studentMobile);
+            },
+
+            showLoginError(msg) {
+                const errorDiv = document.getElementById('login-error');
+                errorDiv.innerText = msg;
+                errorDiv.classList.remove('hidden');
+            },
+
+            // --- WEBRTC PROCTORING INITIATION ---
+            startProctoringSession(mobile) {
+                const btn = document.getElementById('btn-verify');
+                btn.innerHTML = `<span class="animate-pulse">Starting Camera & Secure Server...</span>`;
+                btn.disabled = true;
+
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then((stream) => {
+                        console.log("Camera access granted.");
+                        studentProctoringPeer = new Peer(String(mobile));
+
+                        studentProctoringPeer.on('open', () => {
+                            // Connect Video Stream to Admin
+                            studentProctoringPeer.call('gyanbit-admin-proctoring', stream);
+                            
+                            // Connect Data Channel to Admin
+                            dataConnectionToAdmin = studentProctoringPeer.connect('gyanbit-admin-proctoring');
+                            
+                            // Listen for Direct Admin Commands (Warnings & Blocks)
+                            dataConnectionToAdmin.on('data', (data) => {
+                                if (data.type === 'WARNING') {
+                                    app.showAdminWarning(data.message);
+                                } else if (data.type === 'BLOCK') {
+                                    app.executeAdminBlock();
+                                } else if (data.type === 'UNBLOCK') {
+                                    app.removeAdminBlock();
+                                }
+                            });
+
+                            // Only start exam once secure connection initiates
+                            app.startExam();
+                        });
+
+                        studentProctoringPeer.on('error', (err) => {
+                            console.log("Proctoring Server Offline or Unavailable:", err);
+                            // If admin is offline, we allow the student to start the exam anyway. 
+                            app.startExam(); 
+                        });
+                    })
+                    .catch((err) => {
+                        alert("Camera access is MANDATORY for this exam. Please allow camera permissions and click verify again.");
+                        btn.innerHTML = "Verify & Start Exam &#10140;";
+                        btn.disabled = false;
+                    });
+            },
+
+            // --- ADMIN COMMAND RESPONSES (NEW UI) ---
+            showAdminWarning(message) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = "admin-warning-toast";
+                warningDiv.style.cssText = "position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 15px 30px; border-radius: 8px; font-weight: bold; z-index: 9999; box-shadow: 0 10px 25px rgba(239,68,68,0.5); font-family: sans-serif; transition: opacity 0.5s ease-out; text-align: center;";
+                warningDiv.innerHTML = `⚠️ <br> ADMIN MESSAGE: <br> <span style="font-weight: normal; margin-top:5px; display:inline-block;">${message}</span>`;
+                
+                document.body.appendChild(warningDiv);
+                
+                setTimeout(() => {
+                    if(warningDiv) {
+                        warningDiv.style.opacity = '0';
+                        setTimeout(() => warningDiv.remove(), 500);
+                    }
+                }, 8000);
+            },
+
+            executeAdminBlock() {
+                state.isExamActive = false; // Pause exam tracking
+                clearInterval(state.timerInterval); // Stop timer
+                
+                const blockOverlay = document.createElement('div');
+                blockOverlay.id = "admin-block-overlay";
+                blockOverlay.style.cssText = "position: fixed; inset: 0; background: rgba(15,23,42,0.95); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; font-family: sans-serif; backdrop-filter: blur(5px);";
+                
+                blockOverlay.innerHTML = `
+                    <div style="background: white; padding: 40px; border-radius: 16px; max-width: 500px; color: #334155; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+                        <svg style="width: 80px; height: 80px; color: #ef4444; margin: 0 auto 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <h1 style="font-size: 24px; font-weight: bold; color: #0f172a; margin-bottom: 10px;">Exam Paused & Blocked</h1>
+                        <p style="margin-bottom: 20px;">The Administrator has temporarily suspended your exam. You cannot proceed further at this moment.</p>
+                        <p style="font-size: 14px; color: #64748b; font-weight: bold;">Please wait for the Admin to unblock you.</p>
+                    </div>
+                `;
+                document.body.appendChild(blockOverlay);
+            },
+
+            removeAdminBlock() {
+                const blockOverlay = document.getElementById("admin-block-overlay");
+                if(blockOverlay) {
+                    blockOverlay.remove();
+                    this.showAdminWarning("Your exam has been unblocked. You may continue.");
+                }
+                
+                // If local block screen was showing, hide it and resume
+                const viewBlocked = document.getElementById('view-blocked');
+                if (!viewBlocked.classList.contains('hidden')) {
+                     viewBlocked.classList.add('hidden');
+                     document.getElementById('view-exam').classList.remove('hidden');
+                }
+                
+                state.isExamActive = true; 
+                // Resume timer
+                if(state.timeRemaining > 0) {
+                    state.timerInterval = setInterval(() => this.tickTimer(), 1000);
+                }
+            },
+
+            // --- LOCAL ANTI-CHEAT ACTION ---
+            triggerAntiCheat() {
+                if (!state.isExamActive) return; 
+                state.isExamActive = false; 
+                clearInterval(state.timerInterval);
+
+                document.getElementById('view-exam').classList.add('hidden');
+                document.getElementById('view-blocked').classList.remove('hidden');
+
+                const payload = { 
+                    action: "editStudent", 
+                    oldMobile: state.studentMobile, 
+                    newName: state.studentData.Name, 
+                    newMobile: state.studentData.Mobile, 
+                    newStatus: "blocked", 
+                    newAttempts: state.studentData.AllowedAttempts || 1 
+                };
+
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                }).catch(e => console.error("Error updating blocked status", e));
+            },
+
+            // --- ACTIVE EXAM UI LOGIC ---
+            startExam() {
+                document.getElementById('view-intro').classList.add('hidden');
+                document.getElementById('view-exam').classList.remove('hidden');
+                this.renderQuestion(0);
+                
+                state.isExamActive = true; 
+                state.timerInterval = setInterval(() => this.tickTimer(), 1000);
+            },
+
+            tickTimer() {
+                if(state.timeRemaining <= 0) { clearInterval(state.timerInterval); this.executeSubmit(); return; }
+                state.timeRemaining--;
+                this.updateTimerUI();
+            },
+
+            updateTimerUI() {
+                const minutes = Math.floor(state.timeRemaining / 60);
+                const seconds = state.timeRemaining % 60;
+                document.getElementById('time-display').innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const timerContainer = document.getElementById('ui-timer');
+                if(state.timeRemaining < 60) {
+                    timerContainer.classList.remove('text-rose-600', 'bg-rose-50', 'border-rose-100');
+                    timerContainer.classList.add('text-white', 'bg-rose-600', 'border-rose-600', 'animate-pulse', 'shadow-md');
+                }
+            },
+
+            renderQuestion(index, isSelection = false) {
+                state.currentIndex = index;
+                const q = examData.questions[index];
+                document.getElementById('ui-current-q').innerText = index + 1;
+                document.getElementById('ui-progress-bar').style.width = `${((index) / examData.questions.length) * 100}%`;
+                
+                if(!isSelection) {
+                    const wrapper = document.getElementById('q-anim-wrapper');
+                    wrapper.classList.remove('fade-in');
+                    void wrapper.offsetWidth;
+                    wrapper.classList.add('fade-in');
+                }
+
+                document.getElementById('ui-question-text').innerText = `${index + 1}. ${q.text}`;
+
+                const container = document.getElementById('ui-options-container');
+                container.innerHTML = ''; 
+
+                q.options.forEach((optText, i) => {
+                    const isChecked = state.answers[index] === i;
+                    const label = document.createElement('label');
+                    label.className = `option-label cursor-pointer block border border-neutral-200 rounded-xl p-4 sm:p-5 flex items-center hover:bg-neutral-50 relative ${isChecked ? 'bg-brand-50 border-brand-500' : ''}`;
+                    
+                    const input = document.createElement('input');
+                    input.type = 'radio'; input.name = `question_${index}`; input.value = i; input.className = 'option-radio absolute opacity-0 w-0 h-0'; 
+                    input.checked = isChecked; input.onchange = () => this.selectOption(index, i);
+
+                    const customCircle = document.createElement('div');
+                    customCircle.className = `w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 mr-4 flex-shrink-0 flex items-center justify-center transition-colors duration-300 ${isChecked ? 'border-brand-600 bg-brand-600' : 'border-neutral-300 bg-white'}`;
+                    const innerDot = document.createElement('div');
+                    innerDot.className = `w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white ${isChecked ? 'block' : 'hidden'}`;
+                    customCircle.appendChild(innerDot);
+
+                    const textSpan = document.createElement('span');
+                    textSpan.className = `text-neutral-800 font-medium text-base sm:text-lg transition-colors ${isChecked ? 'text-brand-900 font-bold' : ''}`;
+                    textSpan.innerText = optText;
+
+                    label.appendChild(input); label.appendChild(customCircle); label.appendChild(textSpan);
+                    
+                    if(isChecked) { 
+                        label.style.backgroundColor = '#eff6ff'; 
+                        label.style.borderColor = '#3b82f6'; 
+                    }
+                    container.appendChild(label);
+                });
+
+                document.getElementById('btn-prev').disabled = index === 0;
+                if(index === examData.questions.length - 1) {
+                    document.getElementById('btn-next').classList.add('hidden');
+                    document.getElementById('btn-submit').classList.remove('hidden');
+                    if(state.answers[index] !== null) document.getElementById('ui-progress-bar').style.width = '100%';
+                } else {
+                    document.getElementById('btn-next').classList.remove('hidden');
+                    document.getElementById('btn-submit').classList.add('hidden');
+                }
+            },
+
+            selectOption(qIndex, optIndex) {
+                state.answers[qIndex] = optIndex;
+                this.renderQuestion(qIndex, true); 
+                if(qIndex === examData.questions.length - 1) {
+                     document.getElementById('ui-progress-bar').style.width = '100%';
+                } else {
+                     setTimeout(() => { if (state.currentIndex === qIndex) this.nextQuestion(); }, 500);
+                }
+            },
+
+            nextQuestion() { if(state.currentIndex < examData.questions.length - 1) this.renderQuestion(state.currentIndex + 1); },
+            prevQuestion() { if(state.currentIndex > 0) this.renderQuestion(state.currentIndex - 1); },
+
+            confirmSubmit() {
+                const unanswered = state.answers.filter(a => a === null).length;
+                document.getElementById('modal-warning-text').innerHTML = unanswered > 0 ? `You have <strong class="text-rose-600">${unanswered} unanswered</strong> questions. Are you sure you want to submit?` : "You have answered all questions. Are you ready to view your results?";
+                const modal = document.getElementById('submit-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            },
+
+            closeModal() {
+                const modal = document.getElementById('submit-modal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            },
+
+            executeSubmit() {
+                this.closeModal();
+                state.isExamActive = false; // Disable Anti-cheat safely
+                clearInterval(state.timerInterval);
+                
+                // Stop camera stream upon submission
+                if(studentProctoringPeer) studentProctoringPeer.destroy();
+                
+                document.getElementById('view-exam').classList.add('hidden');
+                document.getElementById('view-results').classList.remove('hidden');
+                
+                examData.completedMobiles.push(state.studentMobile.toString());
+                
+                this.calculateAndRenderResults();
+            },
+
+            calculateAndRenderResults() {
+                let correctCount = 0, incorrectCount = 0, unansweredCount = 0;
+                const categoryStats = {};
+
+                examData.questions.forEach(q => {
+                    if(!categoryStats[q.category]) categoryStats[q.category] = { total: 0, correct: 0 };
+                    categoryStats[q.category].total++;
+                });
+
+                state.answers.forEach((ans, i) => {
+                    if (ans === null) unansweredCount++;
+                    else if (ans === examData.questions[i].correctAnswerIndex) { correctCount++; categoryStats[examData.questions[i].category].correct++; }
+                    else incorrectCount++;
+                });
+
+                const totalQ = examData.questions.length;
+                const scorePct = Math.round((correctCount / totalQ) * 100);
+                const timeTakenSeconds = examData.timeLimitSeconds - state.timeRemaining;
+                const mins = Math.floor(timeTakenSeconds / 60);
+                const secs = timeTakenSeconds % 60;
+
+                document.getElementById('res-score').innerText = `${scorePct}%`;
+                document.getElementById('res-correct').innerText = `${correctCount}/${totalQ}`;
+                document.getElementById('res-time').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                Chart.defaults.font.family = "'Inter', 'system-ui', 'sans-serif'"; Chart.defaults.color = '#52525b';
+                new Chart(document.getElementById('overviewChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: ['Correct', 'Incorrect', 'Unanswered'], datasets: [{ data: [correctCount, incorrectCount, unansweredCount], backgroundColor: ['#10b981', '#f43f5e', '#d4d4d8'], borderWidth: 2, borderColor: '#ffffff' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '70%', animation: { animateScale: true, animateRotate: true } }
+                });
+
+                const labels = Object.keys(categoryStats);
+                if (labels.length > 0) {
+                    new Chart(document.getElementById('categoryChart').getContext('2d'), {
+                        type: 'radar',
+                        data: { labels: labels, datasets: [{ label: 'Proficiency %', data: labels.map(cat => (categoryStats[cat].correct / categoryStats[cat].total) * 100), backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: '#3b82f6', pointBackgroundColor: '#1e3a8a', pointBorderColor: '#fff', borderWidth: 2 }] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { r: { angleLines: { color: '#e5e7eb' }, grid: { color: '#e5e7eb' }, pointLabels: { font: { size: 12, weight: '600' } }, suggestedMin: 0, suggestedMax: 100, ticks: { stepSize: 20, display: false } } }, plugins: { legend: { display: false } } }
+                    });
+                }
+
+                this.renderDetailedReview();
+
+                // Save Exam Score to Backend
+                document.getElementById('saving-status').innerHTML = "Saving your results securely... <span class='animate-pulse'>⏳</span>";
+                const payload = { 
+                    action: "submitExam",
+                    studentName: state.studentName, 
+                    studentMobile: state.studentMobile, 
+                    score: `${scorePct}%`, 
+                    correctAnswers: `${correctCount}/${totalQ}`, 
+                    timeTaken: `${mins}m ${secs}s` 
+                };
+                
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === "success") {
+                        document.getElementById('saving-status').innerHTML = "<span class='text-emerald-600 font-bold'>Results saved successfully! ✓</span> Review your performance below.";
+                    } else {
+                        document.getElementById('saving-status').innerHTML = `<span class='text-rose-600 font-bold'>Error: ${result.message}</span>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('saving-status').innerHTML = `<span class='text-rose-600 font-bold'>Failed to connect to server to save results.</span>`;
+                });
+            },
+
+            renderDetailedReview() {
+                const container = document.getElementById('review-container');
+                container.innerHTML = '';
+                examData.questions.forEach((q, i) => {
+                    const userAnsIdx = state.answers[i], isCorrect = userAnsIdx === q.correctAnswerIndex, isUnanswered = userAnsIdx === null;
+                    const statusIcon = isCorrect ? '<span class="text-emerald-600 font-bold">&#10003; Correct</span>' : isUnanswered ? '<span class="text-neutral-500 font-bold">&#9866; Unanswered</span>' : '<span class="text-rose-600 font-bold">&#10007; Incorrect</span>';
+                    const borderColor = isCorrect ? 'border-emerald-200' : isUnanswered ? 'border-neutral-200' : 'border-rose-200';
+                    const bgColor = isCorrect ? 'bg-emerald-50/50' : 'bg-white';
+                    
+                    container.insertAdjacentHTML('beforeend', `
+                        <div class="border ${borderColor} ${bgColor} rounded-xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                            <div class="flex flex-col sm:flex-row sm:justify-between items-start gap-2 mb-4">
+                                <div class="font-bold text-neutral-900 text-lg"><span class="text-neutral-400 mr-2 font-semibold">Q${i+1}.</span> ${q.text}</div>
+                                <div class="sm:ml-4 whitespace-nowrap text-sm bg-white px-3 py-1 rounded-full border border-neutral-100 shadow-sm">${statusIcon}</div>
+                            </div>
+                            <div class="space-y-3 mt-4 text-sm sm:text-base">
+                                <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0">
+                                    <span class="w-32 text-neutral-500 font-semibold shrink-0 uppercase tracking-wide text-xs mt-1">Your Answer:</span>
+                                    <span class="${isCorrect ? 'text-emerald-700 font-bold bg-emerald-100/50 px-2 py-0.5 rounded' : isUnanswered ? 'text-neutral-400 italic' : 'text-rose-700 font-bold bg-rose-100/50 px-2 py-0.5 rounded line-through'}">${isUnanswered ? 'None selected' : q.options[userAnsIdx]}</span>
+                                </div>
+                                ${!isCorrect ? `
+                                <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-0 pt-2 sm:pt-0">
+                                    <span class="w-32 text-neutral-500 font-semibold shrink-0 uppercase tracking-wide text-xs mt-1">Correct Answer:</span>
+                                    <span class="text-emerald-700 font-bold bg-emerald-100/50 px-2 py-0.5 rounded">${q.options[q.correctAnswerIndex]}</span>
+                                </div>` : ''}
+                            </div>
+                        </div>`);
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>

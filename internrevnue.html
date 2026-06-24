@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Admin Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem; }
+
+    /* Animations */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slideUp 0.6s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.3s; }
+
+    /* Layout & Cards */
+    .dashboard-header { text-align: center; margin-bottom: 2rem; }
+    .summary-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem; margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg); padding: 1.5rem; border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex;
+      align-items: center; justify-content: space-between; transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-5px); }
+    .card-info h3 { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-info p { font-size: 1.8rem; font-weight: bold; margin-top: 0.5rem; color: var(--primary); }
+    .card-icon { font-size: 2.5rem; color: #e5e7eb; }
+
+    /* Table & Controls Container */
+    .table-container {
+      background: var(--card-bg); border-radius: 12px; padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow-x: auto;
+    }
+    
+    /* Search and Toggle Controls */
+    .table-controls {
+      display: flex; justify-content: space-between; align-items: center; 
+      margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1; min-width: 250px; max-width: 400px; position: relative;
+    }
+    .search-box input {
+      width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid #d1d5db; 
+      border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+    }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box i {
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);
+    }
+    
+    .action-buttons {
+      display: flex; gap: 0.5rem;
+    }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+    th, td { padding: 1rem; border-bottom: 1px solid #e5e7eb; }
+    th { background-color: #f9fafb; font-weight: 600; color: var(--text-muted); }
+    tr:hover td { background-color: #f9fafb; }
+    
+    /* Hidden Columns Class */
+    .col-hidden { display: none !important; }
+
+    /* Status Dropdown inside Table */
+    .inline-status-dropdown {
+      padding: 6px 8px; border-radius: 6px; font-size: 0.85em; font-weight: 600; 
+      border: 1px solid #d1d5db; cursor: pointer; outline: none; background-color: white;
+    }
+    .status-terminate, .status-reject { background-color: #fee2e2; color: #991b1b; }
+    .status-success { background-color: #dcfce7; color: #166534; }
+    .status-pending { background-color: #fef9c3; color: #854d0e; }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 0.75rem; border: none; border-radius: 6px; cursor: pointer;
+      font-weight: 500; transition: opacity 0.2s; margin-right: 0.25rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .btn:hover { opacity: 0.8; }
+    .btn-edit { background-color: #3b82f6; color: white; }
+    .btn-delete { background-color: #ef4444; color: white; }
+    .btn-toggle { background-color: #4b5563; color: white; padding: 0.75rem 1.2rem; border-radius: 8px;}
+    .btn-export { background-color: #10b981; color: white; padding: 0.75rem 1.2rem; border-radius: 8px;}
+
+    /* Modal for Editing */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 600px;
+      animation: slideUp 0.3s ease-out; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-content h2 { margin-bottom: 1rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group.full-width { grid-column: span 2; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;}
+    .form-group input, .form-group select { 
+      width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; 
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; grid-column: span 2; }
+    .btn-cancel { background-color: #9ca3af; color: white; }
+    .btn-save { background-color: var(--primary); color: white; }
+    
+    /* Loader */
+    .loader { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-header animate-in">
+    <h1>Course Enrollments Admin</h1>
+    <p style="color: var(--text-muted);">Manage student data, statuses, and revenue dynamically</p>
+  </div>
+
+  <div class="summary-cards animate-in delay-1">
+    <div class="card">
+      <div class="card-info">
+        <h3>Total Enrollments</h3>
+        <p id="totalUsersCount">0</p>
+      </div>
+      <i class="fa-solid fa-users-graduation card-icon"></i>
+    </div>
+    <div class="card">
+      <div class="card-info">
+        <h3>Total Revenue (₹)</h3>
+        <p id="totalRevenueAmount">0</p>
+      </div>
+      <i class="fa-solid fa-indian-rupee-sign card-icon"></i>
+    </div>
+  </div>
+
+  <div class="table-container animate-in delay-2">
+    
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search by Name, Email, or Mobile..." onkeyup="searchTable()">
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-export" onclick="downloadCSV()">
+          <i class="fa-solid fa-file-csv"></i> Export CSV
+        </button>
+        <button class="btn btn-toggle" id="toggleColsBtn" onclick="toggleDetails()">
+          <i class="fa-solid fa-eye"></i> View Details
+        </button>
+      </div>
+    </div>
+
+    <div id="loader" class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i> Fetching records...</div>
+    
+    <table id="dataTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Student Details</th>
+          <th>Mobile</th>
+          <th>Course Name</th>
+          <th class="toggle-col col-hidden">Referral Code</th>
+          <th>Amount Paid</th>
+          <th class="toggle-col col-hidden">Payment ID</th>
+          <th>Status</th>
+          <th class="toggle-col col-hidden">Remark</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        </tbody>
+    </table>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h2>Edit Student Record</h2>
+      <input type="hidden" id="editRowNum">
+      
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Full Name</label>
+          <input type="text" id="editName">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="editEmail">
+        </div>
+        <div class="form-group">
+          <label>Mobile</label>
+          <input type="text" id="editMobile">
+        </div>
+        <div class="form-group full-width">
+          <label>Course Name</label>
+          <input type="text" id="editCourse">
+        </div>
+        <div class="form-group">
+          <label>Referral Code</label>
+          <input type="text" id="editReferralCode">
+        </div>
+        <div class="form-group">
+          <label>Amount Paid (₹)</label>
+          <input type="number" step="0.01" id="editAmount">
+        </div>
+        <div class="form-group">
+          <label>Payment ID</label>
+          <input type="text" id="editPaymentId">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="editStatus">
+            <option value="Certificate Generate">Certificate Generate</option>
+            <option value="Pending">Pending</option>
+            <option value="Terminate">Terminate</option>
+            <option value="Reject">Reject</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Remark</label>
+          <input type="text" id="editRemark" placeholder="Optional unless Terminated/Rejected">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-save" onclick="saveData()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- IMPORTANT: PASTE YOUR APPS SCRIPT WEB APP URL HERE ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNKJG7W3gDhUskYx2IuuFXP_jpdveNpGnsNy6QdP2b_IIeZLeDPn2z4wSOIPlbgB7g/exec'; 
+
+    let isDetailsVisible = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchData();
+        setupModalStatusListener();
+    });
+
+    // Fetches data from Google Sheets
+    function fetchData() {
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('dataTable').style.display = 'none';
+
+      fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('totalUsersCount').innerText = data.totalUsers;
+          document.getElementById('totalRevenueAmount').innerText = parseFloat(data.totalRevenue).toLocaleString('en-IN');
+          
+          const tbody = document.getElementById('tableBody');
+          tbody.innerHTML = '';
+          
+          data.data.forEach(user => {
+            const dateObj = new Date(user.date);
+            const formattedDate = isNaN(dateObj) ? user.date : dateObj.toLocaleDateString('en-IN');
+            
+            // Fix for Referral Code capitalization variations from Apps Script
+            const refCode = user.referralCode || user.ReferralCode || ''; 
+            
+            // Handle badge colors for the dropdown
+            let badgeClass = 'status-success';
+            const statusLower = (user.status || '').toLowerCase();
+            if(statusLower.includes('terminate') || statusLower.includes('reject')) {
+               badgeClass = 'status-terminate';
+            } else if (statusLower.includes('pending')) {
+               badgeClass = 'status-pending';
+            }
+
+            // Ensure columns retain visibility state after a refresh/delete
+            const hideClass = isDetailsVisible ? '' : 'col-hidden';
+
+            const row = `<tr>
+              <td>${formattedDate}</td>
+              <td>
+                <strong>${user.name || ''}</strong><br>
+                <small style="color: var(--text-muted);">${user.email || ''}</small>
+              </td>
+              <td>${user.mobile || ''}</td>
+              <td>${user.course || ''}</td>
+              <td class="toggle-col ${hideClass}">${refCode}</td>
+              <td>₹${user.amount || '0'}</td>
+              <td class="toggle-col ${hideClass}">${user.paymentId || ''}</td>
+              
+              <td>
+                <select class="inline-status-dropdown ${badgeClass}" 
+                        onchange="handleInlineStatusChange(this, ${user.rowNum}, '${escapeHtml(user.name)}', '${escapeHtml(user.email)}', '${escapeHtml(user.mobile)}', '${escapeHtml(user.course)}', '${user.amount}', '${escapeHtml(refCode)}', '${escapeHtml(user.paymentId)}', '${escapeHtml(user.remark)}')">
+                  <option value="Pending" ${user.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                  <option value="Certificate Generate" ${user.status === 'Certificate Generate' ? 'selected' : ''}>Certificate Generate</option>
+                  <option value="Terminate" ${user.status === 'Terminate' ? 'selected' : ''}>Terminate</option>
+                  <option value="Reject" ${user.status === 'Reject' ? 'selected' : ''}>Reject</option>
+                </select>
+              </td>
+
+              <td class="toggle-col ${hideClass}">${user.remark || ''}</td>
+              <td>
+                <button class="btn btn-edit" onclick="openModal(${user.rowNum}, '${escapeHtml(user.name)}', '${escapeHtml(user.email)}', '${escapeHtml(user.mobile)}', '${escapeHtml(user.course)}', '${user.amount}', '${escapeHtml(user.status)}', '${escapeHtml(refCode)}', '${escapeHtml(user.paymentId)}', '${escapeHtml(user.remark)}')">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-delete" onclick="deleteData(${user.rowNum})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+
+          document.getElementById('loader').style.display = 'none';
+          document.getElementById('dataTable').style.display = 'table';
+        })
+        .catch(err => {
+          console.error('Error fetching data:', err);
+          document.getElementById('loader').innerHTML = '<span style="color: red;">Error loading data. Check console.</span>';
+        });
+    }
+
+    // Export to CSV Function
+    function downloadCSV() {
+      let csv = [];
+      
+      // Grab headers (excluding the Actions column at the end)
+      let headers = [];
+      let ths = document.querySelectorAll("#dataTable thead th");
+      for(let i=0; i < ths.length - 1; i++) {
+        headers.push('"' + ths[i].innerText.replace(/"/g, '""') + '"');
+      }
+      csv.push(headers.join(","));
+
+      // Grab table rows (only the ones currently visible)
+      let trs = document.querySelectorAll("#tableBody tr");
+      for(let i=0; i < trs.length; i++) {
+        if(trs[i].style.display !== "none") { // Respects search filter
+          let row = [];
+          let tds = trs[i].querySelectorAll("td");
+          for(let j=0; j < tds.length - 1; j++) {
+            // For the status column, extract the text from the select dropdown
+            let text = "";
+            if(tds[j].querySelector('select')) {
+              let selectElem = tds[j].querySelector('select');
+              text = selectElem.options[selectElem.selectedIndex].text;
+            } else {
+              text = tds[j].innerText;
+            }
+            // Clean up the Student Details column (removes newlines)
+            text = text.replace(/\n/g, " - ").replace(/"/g, '""');
+            row.push('"' + text + '"');
+          }
+          csv.push(row.join(","));
+        }
+      }
+
+      // Download the file
+      let csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+      let downloadLink = document.createElement("a");
+      downloadLink.download = "Course_Enrollments_Export.csv";
+      downloadLink.href = window.URL.createObjectURL(csvFile);
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+
+    // Handles Status changes directly from the Table dropdown
+    function handleInlineStatusChange(selectElem, rowNum, name, email, mobile, course, amount, referralCode, paymentId, existingRemark) {
+      const newStatus = selectElem.value;
+      let finalRemark = existingRemark;
+
+      if (newStatus === 'Terminate' || newStatus === 'Reject') {
+        const userRemark = prompt(`Please provide a reason for selecting '${newStatus}':`);
+        
+        // If they click 'Cancel' on the prompt, revert the dropdown and stop saving
+        if (userRemark === null) {
+          fetchData(); 
+          return;
+        }
+        finalRemark = userRemark;
+      }
+
+      // Show loader while saving
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('dataTable').style.display = 'none';
+
+      // Send update back to Google Apps Script
+      const formData = new URLSearchParams();
+      formData.append('action', 'edit');
+      formData.append('rowNum', rowNum);
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('mobile', mobile);
+      formData.append('course', course);
+      formData.append('amount', amount);
+      formData.append('referralCode', referralCode);
+      formData.append('paymentId', paymentId);
+      formData.append('status', newStatus);
+      formData.append('remark', finalRemark);
+
+      fetch(SCRIPT_URL, { method: 'POST', body: formData })
+        .then(() => fetchData())
+        .catch(err => { alert("Error saving status."); fetchData(); });
+    }
+
+    // Search Filter Function
+    function searchTable() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.getElementById("tableBody").getElementsByTagName("tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        // cells[1] contains Name & Email, cells[2] contains Mobile
+        const nameEmailStr = rows[i].cells[1].innerText.toLowerCase();
+        const mobileStr = rows[i].cells[2].innerText.toLowerCase();
+
+        if (nameEmailStr.includes(input) || mobileStr.includes(input)) {
+          rows[i].style.display = "";
+        } else {
+          rows[i].style.display = "none";
+        }
+      }
+    }
+
+    // Toggle Hidden Columns (Referral, Payment ID, Remark)
+    function toggleDetails() {
+      isDetailsVisible = !isDetailsVisible;
+      const columns = document.querySelectorAll('.toggle-col');
+      const btn = document.getElementById('toggleColsBtn');
+
+      columns.forEach(col => {
+        if (isDetailsVisible) {
+          col.classList.remove('col-hidden');
+        } else {
+          col.classList.add('col-hidden');
+        }
+      });
+
+      if (isDetailsVisible) {
+        btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Hide Details';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-eye"></i> View Details';
+      }
+    }
+
+    // Listens for Reject/Terminate inside the Edit Modal
+    function setupModalStatusListener() {
+      document.getElementById('editStatus').addEventListener('change', function(e) {
+        const val = e.target.value;
+        if (val === 'Terminate' || val === 'Reject') {
+          const userRemark = prompt(`Please provide a reason for selecting '${val}':`);
+          if (userRemark !== null) {
+            document.getElementById('editRemark').value = userRemark;
+          }
+        }
+      });
+    }
+
+    function escapeHtml(text) {
+        if (!text || text === 'undefined') return '';
+        return text.toString().replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function deleteData(rowNum) {
+      if(!confirm("Are you sure you want to delete this record entirely?")) return;
+      
+      const formData = new URLSearchParams();
+      formData.append('action', 'delete');
+      formData.append('rowNum', rowNum);
+
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('dataTable').style.display = 'none';
+
+      fetch(SCRIPT_URL, { method: 'POST', body: formData })
+        .then(() => fetchData()); 
+    }
+
+    function openModal(rowNum, name, email, mobile, course, amount, status, referralCode, paymentId, remark) {
+      document.getElementById('editRowNum').value = rowNum;
+      document.getElementById('editName').value = name;
+      document.getElementById('editEmail').value = email;
+      document.getElementById('editMobile').value = mobile;
+      document.getElementById('editCourse').value = course;
+      document.getElementById('editAmount').value = amount;
+      document.getElementById('editReferralCode').value = referralCode;
+      document.getElementById('editPaymentId').value = paymentId;
+      document.getElementById('editRemark').value = remark;
+      
+      const statusSelect = document.getElementById('editStatus');
+      let matched = false;
+      for (let i = 0; i < statusSelect.options.length; i++) {
+          if (statusSelect.options[i].value === status) {
+              statusSelect.selectedIndex = i;
+              matched = true;
+              break;
+          }
+      }
+      if (!matched && status) {
+          const newOption = new Option(status, status);
+          statusSelect.add(newOption);
+          statusSelect.value = status;
+      }
+
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    function saveData() {
+      const formData = new URLSearchParams();
+      formData.append('action', 'edit');
+      formData.append('rowNum', document.getElementById('editRowNum').value);
+      formData.append('name', document.getElementById('editName').value);
+      formData.append('email', document.getElementById('editEmail').value);
+      formData.append('mobile', document.getElementById('editMobile').value);
+      formData.append('course', document.getElementById('editCourse').value);
+      formData.append('amount', document.getElementById('editAmount').value);
+      formData.append('referralCode', document.getElementById('editReferralCode').value);
+      formData.append('paymentId', document.getElementById('editPaymentId').value);
+      formData.append('status', document.getElementById('editStatus').value);
+      formData.append('remark', document.getElementById('editRemark').value);
+
+      closeModal();
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('dataTable').style.display = 'none';
+
+      fetch(SCRIPT_URL, { method: 'POST', body: formData })
+        .then(() => fetchData()); 
+    }
+  </script>
+</body>
+</html>

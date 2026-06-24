@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for Course | Gyanbit</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+    :root { 
+        --primary: #2563eb; 
+        --accent: #8b5cf6; 
+        --dark-text: #1e293b;
+        --light-bg: #f8fafc;
+        --success: #10b981;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    
+    body { background: var(--light-bg); min-height: 100vh; padding: 40px; }
+
+    /* Header & Nav */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+    .page-title { font-family: 'Exo 2'; font-size: 28px; color: var(--dark-text); font-weight: 700; }
+    .back-btn { text-decoration: none; color: #64748b; display: flex; align-items: center; gap: 8px; font-weight: 500; transition: 0.3s; }
+    .back-btn:hover { color: var(--primary); }
+
+    /* --- COURSE GRID --- */
+    .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; min-height: 200px; }
+
+    /* Card Styles */
+    .course-card { background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: 0.3s; border: 1px solid #f1f5f9; opacity: 0; animation: fadeIn 0.5s forwards; }
+    .course-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    .card-header-img-container { position: relative; height: 200px; width: 100%; background: #e2e8f0; }
+    .card-img { width: 100%; height: 100%; object-fit: cover; }
+    .type-badge { position: absolute; top: 15px; right: 15px; background: #1e293b; color: white; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+    
+    .card-body { padding: 24px; }
+    .tags-container { display: flex; gap: 10px; margin-bottom: 15px; }
+    .tag { background: #ede9fe; color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px; }
+    .course-title { font-family: 'Exo 2'; font-size: 22px; font-weight: 700; color: var(--dark-text); min-height: 60px; }
+    
+    .card-footer { padding: 0 24px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .price-value { font-family: 'Exo 2'; font-size: 28px; font-weight: 700; color: var(--dark-text); }
+    
+    .enroll-btn { background: var(--accent); color: white; border: none; padding: 12px 32px; border-radius: 50px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+    .enroll-btn:hover { background: #7c3aed; transform: scale(1.05); }
+
+    /* --- PAYMENT MODAL (From Source) --- */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+        display: none; justify-content: center; align-items: center; z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .payment-card { 
+        background: white; width: 100%; max-width: 900px; 
+        display: grid; grid-template-columns: 0.8fr 1.2fr; 
+        border-radius: 20px; overflow: hidden; 
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Left Side */
+    .pay-info { background: #f8f9fa; padding: 40px; border-right: 1px solid #eee; }
+    .pay-info h2 { font-family: 'Poppins', sans-serif; font-size: 1.5rem; margin-bottom: 30px; font-weight: 700; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; color: #666; font-size: 0.95rem; }
+    .summary-row.total { border-top: 2px dashed #ddd; padding-top: 20px; margin-top: 20px; align-items: center; }
+    .summary-row.total span:last-child { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+
+    /* Right Side */
+    .pay-form { padding: 40px; position: relative; background: #fff; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; outline: none; transition: 0.2s; }
+    .form-group input:focus { border-color: var(--success); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    
+    .action-row { display: flex; gap: 15px; margin-top: 30px; }
+    .btn-pay { flex: 2; background: var(--success); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-pay:hover { background: #059669; }
+    .btn-close { flex: 1; background: #f3f4f6; color: #333; border: none; padding: 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    
+    /* Loading/Success Overlays inside Modal */
+    .inner-overlay { 
+        position: absolute; top:0; left:0; width:100%; height:100%; 
+        background: rgba(255,255,255,0.98); display: none; 
+        flex-direction: column; justify-content: center; align-items: center; 
+        z-index: 10; text-align: center;
+    }
+
+    @media (max-width: 768px) { .payment-card { grid-template-columns: 1fr; max-width: 500px; } }
+
+    /* Spinner */
+    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--success); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+      <a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+      <h1 class="page-title">Available Courses</h1>
+  </div>
+
+  <div class="course-grid" id="course-list-container">
+      <div style="text-align:center; grid-column:1/-1; padding:40px; color:#64748b;">
+          <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Loading Courses...
+      </div>
+  </div>
+
+  <div class="modal-overlay" id="paymentModal">
+    <div class="payment-card">
+        <div class="pay-info">
+          <h2>Order Summary</h2>
+          <div class="summary-row">
+              <span>Course</span>
+              <span id="sum-title" style="font-weight:600; color:#111; text-align:right;">--</span>
+          </div>
+          <div class="summary-row">
+              <span>Duration</span>
+              <span id="sum-duration">--</span>
+          </div>
+          <div class="summary-row">
+              <span>Tuition Fee</span>
+              <span id="sum-price">--</span>
+          </div>
+          <div class="summary-row">
+              <span>Taxes & Fees</span>
+              <span id="sum-tax">₹5.99</span>
+          </div>
+          <div class="summary-row total">
+              <span>Total Payable</span>
+              <span id="sum-total">--</span>
+          </div>
+          <div style="margin-top:40px; font-size:0.8rem; color:#999;">
+            <p><i class="fas fa-shield-alt"></i> SSL Secure Payment</p>
+          </div>
+        </div>
+
+        <div class="pay-form">
+          
+          <div class="inner-overlay" id="loading-overlay">
+              <div class="spinner"></div>
+              <h3>Processing Enrollment...</h3>
+              <p>Please do not close this window.</p>
+          </div>
+          
+          <div class="inner-overlay" id="success-overlay">
+            <h2 style="color:#10b981; font-size:4rem; margin-bottom:10px;"><i class="fas fa-check-circle"></i></h2>
+            <h2 style="color:#111; margin-bottom:5px;">Success!</h2>
+            <p style="margin-bottom:20px; color:#666;">You are now enrolled.</p>
+            <p style="font-size:0.9rem; background:#f3f4f6; padding:8px 15px; border-radius:4px;">Txn ID: <span id="txn-id" style="font-family:monospace; color:#111;">--</span></p>
+            <button onclick="closePaymentModal()" class="btn-pay" style="margin-top:20px; width:auto; padding: 10px 30px;">Close</button>
+          </div>
+
+          <h2>Student Details</h2>
+          <form id="enrollForm" onsubmit="initiatePayment(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="p_name" placeholder="Enter Your Name" required>
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="p_email" placeholder="Enter Your Email" required>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="p_mobile" placeholder="Mobile Number" required>
+            </div>
+            <div class="action-row">
+              <button type="button" class="btn-close" onclick="closePaymentModal()">Cancel</button>
+              <button type="submit" class="btn-pay"><i class="fas fa-lock"></i> Pay Now</button>
+            </div>
+          </form>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 1. CONFIGURATION ---
+    const RAZORPAY_KEY = "rzp_live_RptkzEZekkhuLC"; 
+    const TAX_AMT = 5.99;
+    
+    // *** PASTE YOUR NEW GOOGLE SCRIPT URL HERE ***
+    const API_URL = "https://script.google.com/macros/s/AKfycbxR7DZ_BDK1h8aXM6kDK8Cw-Zs8V4GuJNbjk2EbSMxRVFvlxQPR7BqyDZYXcnm87bs/exec";
+
+    let availableCourses = [];
+    let selectedCourse = null;
+    let totalPayable = 0;
+
+    // --- 2. LOAD COURSES ---
+    window.onload = function() {
+        // Simple auth check
+        if (!localStorage.getItem('gyanbit_user')) { window.location.href = 'login.html'; return; }
+        
+        fetchCourses();
+    };
+
+    function fetchCourses() {
+        const container = document.getElementById('course-list-container');
+        
+        fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+            availableCourses = data;
+            container.innerHTML = '';
+            
+            if(data.length === 0) {
+                container.innerHTML = '<p style="text-align:center; width:100%;">No courses available.</p>';
+                return;
+            }
+
+            let html = '';
+            data.forEach((course, index) => {
+                // Safe handling for image
+                const img = course.image ? course.image : 'https://placehold.co/600x400?text=No+Image';
+                // Escape title for function call
+                const safeTitle = course.title.replace(/'/g, "\\'");
+                
+                html += `
+                <div class="course-card" style="animation-delay:${index*0.1}s">
+                    <div class="card-header-img-container">
+                        <img src="${img}" class="card-img" onerror="this.src='https://placehold.co/600x400?text=Err'">
+                        <span class="type-badge">${course.type}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="tags-container">
+                            <span class="tag">${course.duration}</span>
+                            <span class="tag">${course.location}</span>
+                        </div>
+                        <h3 class="course-title">${course.title}</h3>
+                    </div>
+                    <div class="card-footer">
+                        <div>
+                            <span style="font-weight:700;">₹</span>
+                            <span class="price-value">${course.price}</span>
+                            <span style="color:#64748b;">/mo</span>
+                        </div>
+                        <button onclick="openPaymentModal(${course.id})" class="enroll-btn">Enroll</button>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p style="color:red; text-align:center;">Failed to load courses.</p>';
+        });
+    }
+
+    // --- 3. PAYMENT MODAL LOGIC ---
+    const modal = document.getElementById('paymentModal');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const successOverlay = document.getElementById('success-overlay');
+
+    function openPaymentModal(courseId) {
+        selectedCourse = availableCourses.find(c => c.id == courseId);
+        if(!selectedCourse) return;
+
+        // Populate Summary
+        document.getElementById('sum-title').innerText = selectedCourse.title;
+        document.getElementById('sum-duration').innerText = selectedCourse.duration;
+        document.getElementById('sum-price').innerText = "₹" + selectedCourse.price;
+        
+        totalPayable = (parseFloat(selectedCourse.price) + TAX_AMT).toFixed(2);
+        document.getElementById('sum-total').innerText = "₹" + totalPayable;
+
+        // Reset Form
+        document.getElementById('enrollForm').reset();
+        loadingOverlay.style.display = 'none';
+        successOverlay.style.display = 'none';
+        
+        modal.style.display = 'flex';
+    }
+
+    function closePaymentModal() {
+        modal.style.display = 'none';
+        // If success was shown, refresh page to update state if needed
+        if(successOverlay.style.display === 'flex') {
+             // Optional: window.location.reload(); 
+        }
+    }
+
+    // --- 4. RAZORPAY INTEGRATION ---
+    function initiatePayment(e) {
+        e.preventDefault();
+        
+        const form = {
+            name: document.getElementById('p_name').value,
+            email: document.getElementById('p_email').value,
+            mobile: document.getElementById('p_mobile').value
+        };
+
+        const options = {
+            "key": RAZORPAY_KEY,
+            "amount": Math.round(totalPayable * 100), // Amount in paise
+            "currency": "INR",
+            "name": "Gyanbit Pvt Ltd",
+            "description": "Enrollment: " + selectedCourse.title,
+            "image": "https://placehold.co/100x100?text=G", // Replace with your logo
+            "handler": function (response) {
+                saveEnrollmentToSheet(response.razorpay_payment_id, form);
+            },
+            "prefill": {
+                "name": form.name,
+                "email": form.email,
+                "contact": form.mobile
+            },
+            "theme": { "color": "#2563eb" }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+    }
+
+    // --- 5. SAVE TO GOOGLE SHEET (NEW TAB) ---
+    function saveEnrollmentToSheet(paymentId, studentData) {
+        loadingOverlay.style.display = 'flex';
+
+        const payload = {
+            action: "enroll",
+            name: studentData.name,
+            email: studentData.email,
+            mobile: studentData.mobile,
+            course: selectedCourse.title,
+            amount: totalPayable,
+            paymentId: paymentId
+        };
+
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            loadingOverlay.style.display = 'none';
+            if(data.result === 'success') {
+                document.getElementById('txn-id').innerText = paymentId;
+                successOverlay.style.display = 'flex';
+            } else {
+                alert("Payment successful, but error saving data: " + data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            loadingOverlay.style.display = 'none';
+            alert("Network error. Please contact support with Txn ID: " + paymentId);
+        });
+    }
+  </script>
+</body>
+</html>

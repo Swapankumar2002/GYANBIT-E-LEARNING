@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Management | Admin</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #3b82f6;
+            --bg-color: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 2rem; width: 100%; max-width: 1400px; margin: 0 auto;
+            box-shadow: var(--shadow);
+        }
+
+        .search-box { position: relative; max-width: 400px; width: 100%; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-box input {
+            width: 100%; padding: 10px 20px 10px 40px; border: 1px solid rgba(0,0,0,0.1); 
+            border-radius: 8px; font-size: 0.95rem; outline: none; transition: 0.3s;
+        }
+        .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+
+        /* Table */
+        .table-wrapper { width: 100%; max-height: 65vh; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); background: white; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; text-align: left; }
+        th { position: sticky; top: 0; background: #f8fafc; padding: 14px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+        tbody tr:hover { background: #f8fafc; }
+
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .status-pending { background: #fef9c3; color: #854d0e; }
+        .status-released { background: #dcfce7; color: #166534; }
+
+        .btn-release { background: var(--primary); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; font-weight: 600; }
+        .btn-release:hover { background: var(--secondary); transform: translateY(-1px); }
+        .btn-edit { background: #f1f5f9; color: var(--primary); padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; font-weight: 600; border: 1px solid #e2e8f0; }
+        .btn-edit:hover { background: #e2e8f0; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 600px;
+            transform: scale(0.95); transition: 0.3s; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+        .form-group input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #f8fafc; transition: 0.3s; }
+        .form-group input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .full-width { grid-column: 1 / -1; }
+
+        .loader {
+            display: none; border: 4px solid #e2e8f0; border-top: 4px solid var(--primary);
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 40px auto;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="glass-panel">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-blue-700">Certificate Generation Hub</h2>
+                <p class="text-sm text-gray-500">Review missing data and release certificates to students.</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search by name, ID, or course..." onkeyup="filterTable()">
+                </div>
+                <button onclick="fetchData()" class="bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-4 py-2 rounded-lg font-bold shadow-sm transition">
+                    <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="loader" id="loader"></div>
+
+        <div class="table-wrapper" id="tableContainer" style="display: none;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Cert ID</th>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th>Course / Field</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="releaseModal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-bold text-gray-800" id="modalTitle">Finalize & Release Certificate</h3>
+                <i class="fas fa-times cursor-pointer text-gray-400 hover:text-red-500 text-xl" onclick="closeModal()"></i>
+            </div>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 text-sm text-yellow-800 rounded">
+                <i class="fas fa-exclamation-triangle mr-1"></i> Please complete any missing fields before releasing.
+            </div>
+
+            <form id="releaseForm" onsubmit="submitRelease(event)">
+                <input type="hidden" id="r_rowIndex">
+                <input type="hidden" id="r_mobile">
+                
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Certificate ID</label>
+                        <input type="text" id="r_certId" readonly class="bg-gray-100 text-gray-500 font-mono">
+                    </div>
+                    <div class="form-group">
+                        <label>Student Name</label>
+                        <input type="text" id="r_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="r_email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Course / Field</label>
+                        <input type="text" id="r_field" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (e.g. 3 Months)</label>
+                        <input type="text" id="r_duration" required placeholder="Enter duration...">
+                    </div>
+                    
+                    <div class="form-group full-width mt-2">
+                        <h4 class="text-sm font-bold text-blue-600 border-b pb-1">Certificate Date Details</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date (Number)</label>
+                        <input type="text" id="r_date" required placeholder="e.g. 15th">
+                    </div>
+                    <div class="form-group">
+                        <label>Day Name</label>
+                        <input type="text" id="r_dayName" required placeholder="e.g. Monday">
+                    </div>
+                    <div class="form-group">
+                        <label>Month</label>
+                        <input type="text" id="r_month" required placeholder="e.g. June">
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <input type="number" id="r_year" required placeholder="e.g. 2026">
+                    </div>
+
+                    <div class="form-group full-width mt-4">
+                        <button type="submit" id="btnReleaseSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Release Certificate Now
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🔴 PASTE YOUR CERTIFICATES SCRIPT URL HERE
+        // ==========================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyxCkIXjZ-0tds5wrkOkGEEO0mJFCNyqYiMqkejAvDKgLOh-FusO852_r4Hv2NOHgI7/exec';
+        
+        let currentData = [];
+        const tableBody = document.getElementById('tableBody');
+        const loader = document.getElementById('loader');
+        const tableContainer = document.getElementById('tableContainer');
+        const modal = document.getElementById('releaseModal');
+
+        // Fetch Data on Load
+        fetchData();
+
+        async function fetchData() {
+            loader.style.display = 'block';
+            tableContainer.style.display = 'none';
+            document.getElementById('refreshIcon').classList.add('fa-spin');
+            
+            try {
+                const response = await fetch(SCRIPT_URL);
+                currentData = await response.json();
+                renderTable(currentData);
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Error fetching certificates.</td></tr>';
+            } finally {
+                loader.style.display = 'none';
+                tableContainer.style.display = 'block';
+                document.getElementById('refreshIcon').classList.remove('fa-spin');
+            }
+        }
+
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No certificates found in database.</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                const isReleased = (item.status || "Pending").toLowerCase() === "released";
+                const statusBadge = isReleased 
+                    ? `<span class="status-badge status-released"><i class="fas fa-check-circle"></i> Released</span>` 
+                    : `<span class="status-badge status-pending"><i class="fas fa-hourglass-half"></i> Pending</span>`;
+                
+                // Safe encoding to pass JSON object to onClick function
+                const itemJSON = encodeURIComponent(JSON.stringify(item));
+
+                let actionButton = '';
+                if(isReleased) {
+                    actionButton = `<button class="btn-edit" onclick="openReviewModal('${itemJSON}', true)"><i class="fas fa-pen"></i> Edit</button>`;
+                } else {
+                    actionButton = `<button class="btn-release" onclick="openReviewModal('${itemJSON}', false)"><i class="fas fa-paper-plane"></i> Release</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="font-mono text-blue-600 font-bold">${item.certId || '-'}</td>
+                    <td><strong>${item.name || '-'}</strong></td>
+                    <td>${item.email || '-'}</td>
+                    <td>${item.field || '-'}</td>
+                    <td>${item.duration || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="flex gap-2">
+                            ${actionButton}
+                            <button onclick="deleteCert('${item.rowIndex}')" class="text-red-400 hover:text-red-600 px-2"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = currentData.filter(item => {
+                return `${item.name} ${item.email} ${item.certId} ${item.field}`.toLowerCase().includes(query);
+            });
+            renderTable(filtered);
+        }
+
+        // Open Modal to Review/Release
+        window.openReviewModal = (encodedItem, isEditMode) => {
+            const item = JSON.parse(decodeURIComponent(encodedItem));
+            
+            document.getElementById('modalTitle').innerText = isEditMode ? "Edit Released Certificate" : "Finalize & Release Certificate";
+            const btn = document.getElementById('btnReleaseSubmit');
+            btn.innerHTML = isEditMode ? '<i class="fas fa-save"></i> Update Certificate Data' : '<i class="fas fa-paper-plane"></i> Release Certificate Now';
+            btn.className = isEditMode ? "w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2" : "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2";
+
+            // Populate Form
+            document.getElementById('r_rowIndex').value = item.rowIndex;
+            document.getElementById('r_mobile').value = item.mobile || '';
+            document.getElementById('r_certId').value = item.certId || '';
+            document.getElementById('r_name').value = item.name || '';
+            document.getElementById('r_email').value = item.email || '';
+            document.getElementById('r_field').value = item.field || '';
+            
+            // Clear default "Standard" duration to force admin to enter real duration
+            let dur = item.duration || '';
+            if(dur.toLowerCase() === 'standard' && !isEditMode) dur = '';
+            document.getElementById('r_duration').value = dur;
+            
+            // Date fields
+            document.getElementById('r_date').value = item.date || '';
+            document.getElementById('r_dayName').value = item.dayName || '';
+            document.getElementById('r_month').value = item.month || '';
+            document.getElementById('r_year').value = item.year || new Date().getFullYear();
+
+            modal.classList.add('active');
+        };
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        // Handle Submit (Release or Update)
+        async function submitRelease(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnReleaseSubmit');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            const payload = {
+                action: "update",
+                rowIndex: document.getElementById('r_rowIndex').value,
+                certId: document.getElementById('r_certId').value,
+                name: document.getElementById('r_name').value,
+                email: document.getElementById('r_email').value,
+                mobile: document.getElementById('r_mobile').value,
+                field: document.getElementById('r_field').value,
+                duration: document.getElementById('r_duration').value,
+                date: document.getElementById('r_date').value,
+                dayName: document.getElementById('r_dayName').value,
+                month: document.getElementById('r_month').value,
+                year: document.getElementById('r_year').value,
+                status: "Released" // Forces status to Released upon saving!
+            };
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                
+                closeModal();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Certificate Released & Updated!', showConfirmButton: false, timer: 2000 });
+                
+                // Wait briefly for sheets to update then refresh
+                setTimeout(fetchData, 1000);
+            } catch (err) {
+                Swal.fire("Error", "Failed to release certificate.", "error");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteCert(rowIndex) {
+            Swal.fire({
+                title: 'Delete Certificate Data?', text: "This cannot be undone.", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: "delete", rowIndex: rowIndex })
+                    });
+                    Swal.fire('Deleted!', 'Record has been removed.', 'success');
+                    setTimeout(fetchData, 1000);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

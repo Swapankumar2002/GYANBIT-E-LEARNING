@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Website Order Form - Swapan Kumar Mondal</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(to right, #e0f7fa, #ffffff);
+      animation: fadeIn 1.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    header {
+      background-color: #25b0eb;
+      color: white;
+      text-align: center;
+      padding: 25px;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+    }
+
+    .main {
+      flex: 3;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .main input, .main select, .main textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .main button {
+      padding: 10px 20px;
+      background-color: #25b0eb;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .main button.reset {
+      background-color: red;
+      margin-left: 10px;
+    }
+
+    .right {
+      flex: 2;
+      background-color: #f7f7f7;
+      padding: 20px;
+      margin-left: 20px;
+      border-radius: 10px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .right h2 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .right p {
+      font-size: 15px;
+      text-align: justify;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 14px;
+      background: #e0e0e0;
+      padding: 12px;
+      margin-top: 30px;
+    }
+
+    @media screen and (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .right {
+        margin-left: 0;
+        margin-top: 20px;
+      }
+    }
+
+    .contact-section {
+      text-align: center;
+      padding: 25px;
+      margin-top: 30px;
+      background: #fff4f4;
+    }
+
+    .contact-section a {
+      color: red;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .contact-section a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Client Website Order Form</h1>
+    <h2>Place an Order to Build Your Custom Website</h2>
+  </header>
+
+  <div class="container">
+    <div class="main">
+      <form autocomplete="off" name="google-sheet">
+        <label>Full Name:</label>
+        <input type="text" placeholder="Enter your name" name="Name" required>
+
+        <label>Business / Organization Name:</label>
+        <input type="text" name="Business_Name" placeholder="e.g. Swapan IT Solutions" required>
+
+        <label>Email ID:</label>
+        <input type="email" name="Email" placeholder="your@email.com" required>
+
+        <label>Mobile Number:</label>
+        <input type="text" name="Mobile" placeholder="Enter your mobile number" required pattern="[0-9]{10,15}">
+
+        <label>Website Type:</label>
+        <select name="Website_Type" required>
+          <option value="">-- Select Website Type --</option>
+          <option value="Portfolio">Portfolio</option>
+          <option value="E-commerce">E-commerce</option>
+          <option value="Blog">Blog</option>
+          <option value="Educational">Educational</option>
+          <option value="Business">Business</option>
+          <option value="Custom">Custom</option>
+        </select>
+
+        <label>Any Specific Requirement or Features?</label>
+        <textarea name="Requirement" rows="5" placeholder="Mention login panel, payment, gallery, etc..."></textarea>
+
+        <label>Project Document Link (Optional):</label>
+        <input type="url" name="Url" placeholder="Paste document or Google Drive link">
+
+        <label>Preferred Date to Start:</label>
+        <input type="date" name="Start_Date">
+
+        <label>Gender:</label>
+        <select name="Gender" required>
+          <option value="">-- Select Gender --</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <br><br>
+        <button type="submit">Submit Order</button>
+        <button type="reset" class="reset">Reset</button>
+      </form>
+    </div>
+
+    <div class="right">
+      <h2>📋 Guidelines & Instructions</h2>
+      <p>
+        Welcome to the Website Order Portal of Swapan Kumar Mondal. We're delighted to help bring your online presence to life. Whether you're looking for a personal portfolio, a business website, or a full-fledged e-commerce platform, we aim to make the process smooth, transparent, and rewarding. Please take a moment to carefully read the following guidelines and instructions before submitting your website order request.
+        <br><br>
+        Before placing an order, it's essential to have a clear understanding of what kind of website you need. Think about the purpose of your website: Is it to showcase your personal projects and skills? Promote your business or services? Sell products online? Share blog posts or educational resources? Knowing your goal will help us build a website that’s aligned with your vision.
+        <br><br>
+        We offer various types of websites depending on your needs, including Portfolio, Business, E-commerce, Blog, Educational, and Custom solutions. Be specific about your requirements when filling out the form.
+        <br><br>
+        If you already have your content like text files, images, logos, or design references, upload them to Google Drive and paste the link into the form. This helps us align the site with your branding.
+        <br><br>
+        Once we receive your order, we’ll review the details and contact you within 24–48 hours for confirmation and clarification. After confirmation, our development process includes design, development, feedback/revision stages, testing, and final delivery. You’ll be kept updated throughout the process.
+        <br><br>
+        We provide support for 30 days after delivery, covering minor fixes, bug resolution, and basic hosting help. Extended maintenance is also available.
+        <br><br>
+        Basic websites like portfolios are free, while advanced features like logins, payments, and dashboards may incur a small fee. You’ll be informed upfront before we begin.
+        <br><br>
+        Average delivery times vary:
+        <ul>
+          <li>Portfolio – 2–3 days</li>
+          <li>Business – 4–6 days</li>
+          <li>E-commerce – 7–10 days</li>
+          <li>Custom – Based on scope</li>
+        </ul>
+        We also value your privacy. Your data will not be shared with anyone, and all files remain confidential. You can also request an NDA if needed.
+        <br><br>
+        For assistance, please reach out via the Contact page or email at <b>helpdesk.weborder@gmail.com</b>.
+      </p>
+    </div>
+  </div>
+
+  <div class="contact-section">
+    <p>👉 Have any questions or need help?  
+      Contact Us <a href="https://mail.google.com/mail">helpdesk.gyanbit@gmail.com</a> and we’ll get back to you as soon as possible!
+    </p>
+  </div>
+
+  <footer>
+    © 2025 Gyanbit Pvt. Ltd.| All rights reserved.
+  </footer>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyHAleRPfttL7UqeJAsC_2kQeC-8vjJj8_Qd2PeKrAIG6_Pi_n1RMHKC-2AqxelTHKs/exec';
+    const form = document.forms['google-sheet'];
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+        .then(response => {
+          alert("✅ Order submitted successfully! We will contact you soon.");
+          form.reset();
+        })
+        .catch(error => alert('❌ Submission failed. Please try again.'));
+    });
+  </script>
+
+</body>
+</html>

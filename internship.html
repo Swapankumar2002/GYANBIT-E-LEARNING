@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Launchpad | Gyanbit Pvt. Ltd.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+
+    :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #a855f7;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --text-main: #1f2937;
+        --text-light: #6b7280;
+        --card-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #0f172a; 
+        min-height: 100vh;
+        color: var(--text-main);
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* Canvas for Background Animation */
+    #canvas-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+    
+    .container { max-width: 1280px; margin: 0 auto; padding: 20px; }
+    
+    /* Views */
+    .view-section { display: none; animation: fadeIn 0.5s ease; }
+    .view-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Hero Section */
+    .hero-text { text-align: center; color: white; margin-bottom: 60px; margin-top: 40px; }
+    .hero-text h1 { font-family: 'Poppins', sans-serif; font-size: 3.5rem; margin-bottom: 15px; text-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .hero-text p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; color: #cbd5e1; }
+
+    /* Loading Spinner */
+    .loader-container { 
+        display: flex; flex-direction: column; justify-content: center; align-items: center; 
+        height: 300px; color: white;
+    }
+    .spinner-simple {
+        width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3);
+        border-radius: 50%; border-top-color: #fff; animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+
+    /* Course Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding-bottom: 60px; }
+    
+    .card {
+        background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; 
+        overflow: hidden; box-shadow: var(--card-shadow); transition: all 0.4s; 
+        display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    
+    .card-img-container { height: 180px; overflow: hidden; position: relative; background: #e2e8f0; }
+    .card-img-container img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+    .card:hover img { transform: scale(1.1); }
+    
+    .badge { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    
+    .card-body { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
+    .card-tags { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .tag { font-size: 0.75rem; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+    
+    .card h3 { font-family: 'Poppins', sans-serif; font-size: 1.25rem; margin-bottom: 10px; color: #111; }
+    
+    .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; }
+    .price { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+    .price span { font-size: 0.9rem; font-weight: 400; color: var(--text-light); }
+    
+    .btn-enroll { 
+        background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+        color: white; border: none; padding: 10px 24px; border-radius: 50px; 
+        font-weight: 600; cursor: pointer; transition: 0.3s; 
+    }
+    .btn-enroll:hover { transform: scale(1.05); }
+
+    /* =========================================
+       NEW PAYMENT FORM STYLES
+       ========================================= */
+    .payment-wrapper { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+    
+    .payment-card { 
+        background: white; width: 100%; max-width: 950px; 
+        display: grid; grid-template-columns: 0.8fr 1.2fr; 
+        border-radius: 12px; overflow: hidden; 
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.5s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    /* Left Side: Summary */
+    .pay-info { background: #f8f9fa; padding: 40px; border-right: 1px solid #eee; }
+    .pay-info h2 { font-family: 'Poppins', sans-serif; font-size: 1.5rem; margin-bottom: 30px; color: #111; font-weight: 700; }
+    
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; color: #666; font-size: 0.95rem; }
+    
+    .summary-row.discount-row { color: #10b981; font-weight: 600; display: none; } /* Hidden by default */
+    
+    .summary-row.total { 
+        border-top: 2px dashed #ddd; padding-top: 20px; margin-top: 20px; 
+        align-items: center;
+    }
+    .summary-row.total span:first-child { font-size: 1.2rem; font-weight: 700; color: #111; }
+    .summary-row.total span:last-child { font-size: 1.5rem; font-weight: 700; color: #4338ca; }
+
+    .security-badge { margin-top: 40px; font-size: 0.8rem; color: #999; line-height: 1.5; }
+    .security-badge i { margin-right: 5px; }
+
+    /* Right Side: Form */
+    .pay-form { padding: 40px; position: relative; background: #fff; }
+    .pay-form h2 { font-family: 'Poppins', sans-serif; font-size: 1.5rem; margin-bottom: 30px; color: #111; font-weight: 700; }
+    
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 8px; }
+    .form-group input { 
+        width: 100%; padding: 12px 15px; 
+        border: 1px solid #e2e8f0; border-radius: 8px; 
+        font-size: 1rem; color: #333; transition: 0.2s;
+    }
+    .form-group input:focus { border-color: #10b981; outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    
+    /* Input Flex for Apply Button */
+    .input-flex { display: flex; gap: 10px; }
+    .btn-apply { background: #4f46e5; color: white; border: none; padding: 0 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+    .btn-apply:hover { background: #4338ca; }
+
+    /* Buttons */
+    .action-row { display: flex; gap: 15px; margin-top: 30px; }
+    
+    .btn-pay { 
+        flex: 2; background: #10b981; color: white; border: none; 
+        padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; 
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+        transition: background 0.2s;
+    }
+    .btn-pay:hover { background: #059669; }
+
+    .btn-back { 
+        flex: 1; background: #f3f4f6; color: #333; border: none; 
+        padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; 
+        cursor: pointer; transition: background 0.2s;
+    }
+    .btn-back:hover { background: #e5e7eb; }
+
+    /* Overlays */
+    .overlay { 
+        position: absolute; top:0; left:0; width:100%; height:100%; 
+        background: rgba(255,255,255,0.98); display: none; 
+        flex-direction: column; justify-content: center; align-items: center; 
+        z-index: 10; text-align: center;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    footer { text-align: center; padding: 40px; color: rgba(255,255,255,0.6); margin-top: auto; }
+    
+    @media (max-width: 768px) { .payment-card { grid-template-columns: 1fr; max-width: 500px; } }
+</style>
+</head>
+<body>
+
+<canvas id="canvas-bg"></canvas>
+
+<div class="container">
+    
+    <div id="home-view" class="view-section active">
+        <div class="hero-text">
+            <h1>Accelerate Your Career</h1>
+            <p>Industry-standard internships designed to get you hired. Real projects, expert mentors, and certified experience.</p>
+        </div>
+        
+        <div class="loader-container" id="grid-loader">
+            <div class="spinner-simple"></div>
+            <p>Loading Opportunities...</p>
+        </div>
+
+        <div id="error-msg" style="display:none; text-align:center; color:#f87171; background:rgba(0,0,0,0.5); padding:20px; border-radius:10px;">
+            <h3>Unable to load courses</h3>
+            <p>Please check your internet connection or try again later.</p>
+        </div>
+
+        <div class="grid" id="internships-grid"></div>
+        
+        <footer>
+            &copy; 2025 Gyanbit Pvt. Ltd. All rights reserved.<br>
+            Made with <i class="fas fa-heart" style="color:var(--secondary)"></i> for Students.
+        </footer>
+    </div>
+
+    <div id="payment-view" class="view-section">
+        <div class="payment-wrapper">
+            <div class="payment-card">
+                
+                <div class="pay-info">
+                    <h2>Order Summary</h2>
+                    
+                    <div class="summary-row">
+                        <span>Selected Program</span>
+                        <span id="sum-title" style="font-weight:600; color:#111;">--</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Duration</span>
+                        <span id="sum-duration">--</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Base Fee</span>
+                        <span id="sum-price">--</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Processing & Taxes (GST)</span>
+                        <span id="sum-tax">--</span>
+                    </div>
+                    
+                    <div class="summary-row discount-row" id="sum-discount-row">
+                        <span>Discount (<span id="applied-code-name"></span>)</span>
+                        <span id="sum-discount-amount">-₹0</span>
+                    </div>
+                    
+                    <div class="summary-row total">
+                        <span>Total Payable</span>
+                        <span id="sum-total">--</span>
+                    </div>
+
+                    <div class="security-badge">
+                        <p><i class="fas fa-shield-alt"></i> 100% Secure Payment</p>
+                        <p>Includes Certificate of Completion & Letter of Recommendation.</p>
+                    </div>
+                </div>
+
+                <div class="pay-form">
+                    <div class="overlay" id="loading-overlay">
+                        <div class="spinner-simple" style="border-color:#ccc; border-top-color:#10b981"></div>
+                        <h3>Processing...</h3>
+                    </div>
+                    
+                    <div class="overlay" id="success-overlay">
+                        <h2 style="color:#10b981; font-size:4rem; margin-bottom:10px;"><i class="fas fa-check-circle"></i></h2>
+                        <h2 style="color:#111; margin-bottom:10px;">Success!</h2>
+                        <p style="margin-bottom:20px; color:#666;">Enrollment Confirmed.</p>
+                        <p style="font-size:0.9rem; background:#f3f4f6; padding:8px 15px; border-radius:4px;">Txn ID: <span id="txn-id" style="font-family:monospace">--</span></p>
+                        <button onclick="window.location.reload()" class="btn-pay" style="margin-top:20px; width:auto; padding: 10px 30px;">Back to Home</button>
+                    </div>
+
+                    <h2>Student Details</h2>
+                    <form id="enrollForm" onsubmit="initiatePayment(event)">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="p_name" placeholder="Enter Your Name....." required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="p_email" placeholder="Enter Your Email...." required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="p_mobile" placeholder="Mobile Number" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Referral / Coupon Code (Optional)</label>
+                            <div class="input-flex">
+                                <input type="text" id="p_referral" placeholder="Enter Code..." style="text-transform: uppercase;">
+                                <button type="button" class="btn-apply" onclick="applyCoupon()">Apply</button>
+                            </div>
+                        </div>
+                        
+                        <div class="action-row">
+                            <button type="button" class="btn-back" onclick="switchView('home')">Cancel</button>
+                            <button type="submit" class="btn-pay"><i class="fas fa-lock"></i> Pay Now</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ==========================================
+// 1. BACKGROUND VISUALIZATION (PARTICLES)
+// ==========================================
+const canvas = document.getElementById('canvas-bg');
+const ctx = canvas.getContext('2d');
+let particlesArray;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let mouse = { x: null, y: null, radius: (canvas.height/80) * (canvas.width/80) };
+
+window.addEventListener('mousemove', function(event) {
+    mouse.x = event.x;
+    mouse.y = event.y;
+});
+
+class Particle {
+    constructor(x, y, dx, dy, size) {
+        this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.size = size;
+    }
+    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fillStyle='#6366f1'; ctx.fill(); }
+    update() {
+        if(this.x > canvas.width || this.x < 0) this.dx = -this.dx;
+        if(this.y > canvas.height || this.y < 0) this.dy = -this.dy;
+        
+        let dX = mouse.x - this.x;
+        let dY = mouse.y - this.y;
+        let distance = Math.sqrt(dX*dX + dY*dY);
+        if (distance < 100) {
+            this.x -= dX/10;
+            this.y -= dY/10;
+        }
+
+        this.x += this.dx; this.y += this.dy;
+        this.draw();
+    }
+}
+function init() {
+    particlesArray = [];
+    for(let i=0; i<80; i++){
+        let size = Math.random()*3+1;
+        let x = Math.random()*(innerWidth-size*2)+size;
+        let y = Math.random()*(innerHeight-size*2)+size;
+        let dx = (Math.random()-0.5); let dy = (Math.random()-0.5);
+        particlesArray.push(new Particle(x,y,dx,dy,size));
+    }
+}
+function animate() {
+    requestAnimationFrame(animate);
+    ctx.clearRect(0,0,innerWidth, innerHeight);
+    particlesArray.forEach(p => p.update());
+    
+    for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a; b < particlesArray.length; b++) {
+            let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + 
+                           ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+            if (distance < (canvas.width/7) * (canvas.height/7)) {
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                ctx.stroke();
+            }
+        }
+    }
+}
+init(); animate();
+window.addEventListener('resize', ()=>{ canvas.width=innerWidth; canvas.height=innerHeight; init(); });
+
+
+// ==========================================
+// 2. CONFIGURATION & API
+// ==========================================
+const RAZORPAY_KEY = "rzp_live_RptkzEZekkhuLC"; 
+
+const COURSES_API_URL = "https://script.google.com/macros/s/AKfycbxkwT26qJKDS3O6VNYTd-DtSA13QsUMQcteUbyeVSDXLKKxz4ykpwSQ1INileSu68PH/exec"; 
+const ENROLL_API_URL = "https://script.google.com/macros/s/AKfycbxkJjZfhnh0oGFpgbgF6oCXq4SeP_tRi92AsMfZUtihwBlgGiUont7WSOSkc_4asbBX/exec"; 
+
+
+// ==========================================
+// 3. LOGIC: FETCH COURSES & COUPONS
+// ==========================================
+let internships = [];
+let validCoupons = {}; // Stores fetched coupons
+let appliedDiscount = 0; // Tracks active discount amount
+
+window.onload = function() {
+    const loader = document.getElementById('grid-loader');
+    const grid = document.getElementById('internships-grid');
+    const errorMsg = document.getElementById('error-msg');
+
+    fetch(COURSES_API_URL)
+    .then(response => response.json())
+    .then(data => {
+        if(data.error) { throw new Error(data.error); }
+        
+        // Save coupons globally
+        validCoupons = data.coupons || {};
+        
+        // Ensure we parse correctly whether the old script or new script sends it
+        let coursesData = data.courses ? data.courses : data;
+
+        // AGGRESSIVE VISIBILITY FILTER
+        internships = coursesData.filter(item => {
+            const isHidden = String(item.isVisible).trim().toLowerCase() === 'false';
+            return !isHidden; 
+        });
+
+        loader.style.display = 'none';
+        
+        if(internships.length === 0) {
+            grid.innerHTML = "<p style='color:white; text-align:center; width:100%;'>No courses found currently available. Please check back later.</p>";
+            return;
+        }
+        renderGrid(internships);
+    })
+    .catch(error => {
+        console.error("Fetch Error:", error);
+        loader.style.display = 'none';
+        errorMsg.style.display = 'block';
+    });
+};
+
+function renderGrid(data) {
+    const grid = document.getElementById('internships-grid');
+    grid.innerHTML = ""; 
+
+    data.forEach((item, index) => {
+        const imgUrl = item.image ? item.image : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=500&q=80';
+        const durationTag = (item.duration && String(item.duration).trim() !== '') ? item.duration : 'Standard Duration';
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.animation = `fadeIn 0.6s ease forwards ${index * 0.1}s`;
+        
+        card.innerHTML = `
+            <div class="card-img-container">
+                <img src="${imgUrl}" alt="${item.title}">
+                <div class="badge">${item.type}</div>
+            </div>
+            <div class="card-body">
+                <div class="card-tags">
+                    <span class="tag"><i class="fas fa-clock"></i> ${durationTag}</span>
+                    <span class="tag">Remote</span>
+                </div>
+                <h3>${item.title}</h3>
+                <div class="card-footer">
+                    <div class="price">₹${item.price}</div>
+                    <button class="btn-enroll" onclick="selectCourse(${item.id})">Enroll</button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+
+// ==========================================
+// 4. LOGIC: PAYMENT & ENROLLMENT
+// ==========================================
+let selectedCourse = null;
+let totalAmount = 0;
+const views = { home: document.getElementById('home-view'), payment: document.getElementById('payment-view') };
+
+function switchView(viewName) {
+    Object.values(views).forEach(el => el.classList.remove('active'));
+    views[viewName].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function selectCourse(id) {
+    selectedCourse = internships.find(i => i.id == id);
+    if(!selectedCourse) return;
+
+    // Reset Coupon state when selecting a new course
+    appliedDiscount = 0;
+    document.getElementById('p_referral').value = '';
+    document.getElementById('sum-discount-row').style.display = 'none';
+
+    document.getElementById('sum-title').textContent = selectedCourse.title;
+    document.getElementById('sum-duration').textContent = (selectedCourse.duration && String(selectedCourse.duration).trim() !== '') ? selectedCourse.duration : 'Standard Duration';
+    document.getElementById('sum-price').textContent = "₹" + selectedCourse.price;
+    
+    const gstAmount = parseFloat(selectedCourse.gst) || 0;
+    document.getElementById('sum-tax').textContent = "₹" + gstAmount;
+
+    calculateTotal();
+    switchView('payment');
+}
+
+// Re-calculates total applying base, tax, and discount
+function calculateTotal() {
+    const basePrice = parseFloat(selectedCourse.price) || 0;
+    const gstAmount = parseFloat(selectedCourse.gst) || 0;
+    
+    let finalTotal = (basePrice + gstAmount) - appliedDiscount;
+    if (finalTotal < 0) finalTotal = 0; // Prevent negative totals
+    
+    totalAmount = finalTotal.toFixed(2);
+    document.getElementById('sum-total').textContent = "₹" + totalAmount;
+}
+
+// Validates, applies coupon code, and triggers Animation
+function applyCoupon() {
+    const codeInput = document.getElementById('p_referral').value.trim().toUpperCase();
+    const discountRow = document.getElementById('sum-discount-row');
+    
+    if(!codeInput) {
+        Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please enter a coupon code first!' });
+        return;
+    }
+
+    if(validCoupons && validCoupons[codeInput]) {
+        const cType = validCoupons[codeInput].type;
+        const cVal = validCoupons[codeInput].value;
+        const baseTotal = (parseFloat(selectedCourse.price) || 0) + (parseFloat(selectedCourse.gst) || 0);
+        
+        // Calculate dynamic discount based on Type
+        if (cType === 'Percentage') {
+            appliedDiscount = baseTotal * (cVal / 100);
+        } else {
+            appliedDiscount = cVal;
+        }
+
+        // Prevent discount from exceeding total cost
+        if(appliedDiscount > baseTotal) appliedDiscount = baseTotal;
+        
+        // ANIMATED POPUP FOR SUCCESS
+        Swal.fire({
+            title: 'Congratulations! 🎉',
+            text: `Coupon applied successfully. You saved ₹${appliedDiscount.toFixed(2)}!`,
+            icon: 'success',
+            backdrop: `rgba(0,0,123,0.4) left top no-repeat`,
+            showConfirmButton: false,
+            timer: 2500
+        });
+        
+        // Update Summary UI
+        document.getElementById('applied-code-name').textContent = codeInput;
+        document.getElementById('sum-discount-amount').textContent = `-₹${appliedDiscount.toFixed(2)}`;
+        discountRow.style.display = 'flex';
+        
+        calculateTotal();
+    } else {
+        appliedDiscount = 0;
+        
+        // ANIMATED POPUP FOR ERROR
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Code',
+            text: 'This coupon is invalid, inactive, or expired.'
+        });
+        
+        // Hide Summary UI
+        discountRow.style.display = 'none';
+        
+        calculateTotal();
+    }
+}
+
+function initiatePayment(e) {
+    e.preventDefault();
+    const form = {
+        name: document.getElementById('p_name').value,
+        email: document.getElementById('p_email').value,
+        mobile: document.getElementById('p_mobile').value,
+        referral: document.getElementById('p_referral').value.trim().toUpperCase()
+    };
+    const razorAmount = Math.round(totalAmount * 100);
+
+    // Skip Razorpay if total amount is 0 (100% discount scenario)
+    if(razorAmount === 0) {
+        finalizeEnrollment("FREE_COUPON_APPLIED", form);
+        return;
+    }
+
+    const options = {
+        "key": RAZORPAY_KEY,
+        "amount": razorAmount,
+        "currency": "INR",
+        "name": "Gyanbit",
+        "description": `Enroll: ${selectedCourse.title}`,
+        "handler": function (response) { finalizeEnrollment(response.razorpay_payment_id, form); },
+        "prefill": { "name": form.name, "email": form.email, "contact": form.mobile },
+        "theme": { "color": "#4f46e5" }
+    };
+    new Razorpay(options).open();
+}
+
+function finalizeEnrollment(payId, formData) {
+    document.getElementById('loading-overlay').style.display = 'flex';
+    
+    // Send data to ENROLLMENTS Database
+    fetch(ENROLL_API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ...formData,
+            course: selectedCourse.title,
+            amountPaid: totalAmount,
+            paymentId: payId
+        })
+    }).then(() => {
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('txn-id').textContent = payId;
+        document.getElementById('success-overlay').style.display = 'flex';
+    }).catch(err => {
+        console.error(err);
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('txn-id').textContent = payId;
+        document.getElementById('success-overlay').style.display = 'flex';
+    });
+}
+</script>
+</body>
+</html>

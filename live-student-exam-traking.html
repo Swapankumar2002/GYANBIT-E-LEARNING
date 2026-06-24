@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Proctoring & Anti-Cheat | Exam Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PeerJS for Live Video Streaming -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        body { background-color: #f8fafc; color: #334155; font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Video Grid Styling: Mirror the video so it looks natural */
+        video { transform: scaleX(-1); object-fit: cover; } 
+        
+        /* Pulsing warning border animation for cheating alerts */
+        .cheat-warning-border {
+            border: 3px solid #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
+            animation: pulseBorder 1.5s infinite alternate;
+        }
+        @keyframes pulseBorder {
+            0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.4); }
+            100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden bg-slate-50">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 p-4 sm:px-8 flex justify-between items-center shadow-sm shrink-0 z-20">
+        <div>
+            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Live<span class="text-emerald-500">Proctoring</span> & <span class="text-rose-500">Anti-Cheat</span></h1>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Exam Monitoring System</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex h-3 w-3 relative">
+                    <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span id="status-dot" class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                </span>
+                <span id="status-text" class="text-sm font-bold text-slate-600">Offline</span>
+            </div>
+            
+            <button onclick="startProctoring()" id="btn-start" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-semibold transition shadow-sm flex items-center gap-2">
+                &#9654; Start Receiving Video
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-8 w-full max-w-[1600px] mx-auto space-y-8">
+        
+        <!-- CRITICAL ALERT ZONE (Always on Top) -->
+        <div id="alert-zone" class="hidden space-y-3">
+            <div class="flex items-center gap-2 text-rose-600 font-bold text-sm uppercase tracking-wider">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+                Suspicious Activity Detected (Cheating Alerts)
+            </div>
+            <div id="alert-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-max bg-rose-50/50 p-4 rounded-2xl border border-rose-200">
+                <!-- High priority flag streams move here -->
+            </div>
+        </div>
+
+        <!-- REGULAR STREAM ZONE -->
+        <div class="space-y-3">
+            <div id="normal-zone-title" class="text-slate-500 font-bold text-sm uppercase tracking-wider hidden">Active Normal Streams</div>
+            <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-max">
+                
+                <!-- Empty State (Shows when no one is connected) -->
+                <div id="empty-state" class="col-span-full flex flex-col items-center justify-center text-slate-400 h-[50vh] fade-in">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center text-center max-w-md">
+                        <svg class="w-16 h-16 mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        <h3 class="text-lg font-bold text-slate-700 mb-2">Waiting for Students</h3>
+                        <p class="text-sm text-slate-500">Click "Start Receiving Video" above. When students begin their exam, their webcams will automatically appear here.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const ADMIN_PEER_ID = 'gyanbit-admin-proctoring'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz4F1a_cI6g93INWKzJxgsKBvM6h2Sjtyd9tR_-8oQo6NSB4JDtmXPMsG6d8W-_xcW16A/exec'; 
+        
+        let peer = null;
+        // Keep track of student data connections to send them messages
+        const activeConnections = {};
+
+        function startProctoring() {
+            if (peer) return;
+
+            const btn = document.getElementById('btn-start');
+            btn.innerText = "Connecting...";
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            peer = new Peer(ADMIN_PEER_ID);
+
+            peer.on('open', (id) => {
+                document.getElementById('status-text').innerText = "Live & Monitoring";
+                document.getElementById('status-text').classList.replace('text-slate-600', 'text-emerald-700');
+                document.getElementById('status-dot').classList.replace('bg-rose-500', 'bg-emerald-500');
+                document.getElementById('status-ping').classList.replace('bg-rose-400', 'bg-emerald-400');
+                btn.style.display = 'none';
+            });
+
+            // Handle incoming VIDEO streams
+            peer.on('call', (call) => {
+                call.answer(); 
+                const studentMobile = call.peer; 
+
+                call.on('stream', (studentVideoStream) => {
+                    addVideoToGrid(studentVideoStream, studentMobile);
+                });
+                
+                call.on('close', () => {
+                    removeVideoFromGrid(studentMobile);
+                });
+            });
+
+            // Handle incoming DATA connections (for alerts & two-way chat)
+            peer.on('connection', (conn) => {
+                const studentMobile = conn.peer;
+                activeConnections[studentMobile] = conn;
+
+                conn.on('data', (data) => {
+                    if (data.type === 'CHEAT_ALERT') {
+                        triggerCheatWarning(studentMobile, data.reason);
+                    }
+                });
+
+                conn.on('close', () => {
+                    delete activeConnections[studentMobile];
+                });
+            });
+        }
+
+        function addVideoToGrid(stream, mobileNumber) {
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('normal-zone-title').classList.remove('hidden');
+            
+            if (document.getElementById(`vid-container-${mobileNumber}`)) return; 
+
+            const grid = document.getElementById('video-grid');
+            
+            const container = document.createElement('div');
+            container.id = `vid-container-${mobileNumber}`;
+            container.className = 'bg-white p-2 rounded-xl shadow-sm border border-slate-200 relative group fade-in transition-all duration-300 flex flex-col';
+            
+            const label = document.createElement('div');
+            label.id = `label-${mobileNumber}`;
+            label.className = 'absolute top-4 left-4 bg-slate-900/70 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-md z-10 shadow-sm flex items-center gap-2';
+            label.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Mobile: ${mobileNumber}`;
+            
+            const video = document.createElement('video');
+            video.id = `vid-${mobileNumber}`;
+            video.className = 'w-full aspect-video object-cover rounded-lg bg-slate-900 flex-1';
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = true; 
+            video.srcObject = stream;
+
+            // --- NEW: INTERVENTION CONTROLS ---
+            const controls = document.createElement('div');
+            controls.className = 'mt-3 flex flex-col gap-2 pt-2 border-t border-slate-100';
+            controls.innerHTML = `
+                <!-- Warning Readout & Dismiss -->
+                <div class="flex justify-between items-center text-xs px-1">
+                    <span id="reason-${mobileNumber}" class="text-slate-400 font-medium italic truncate max-w-[150px]">Monitoring...</span>
+                    <button onclick="dismissWarning('${mobileNumber}')" id="btn-dismiss-${mobileNumber}" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-semibold transition border border-slate-300">Clear</button>
+                </div>
+                
+                <!-- Send Chat Warning -->
+                <div class="flex gap-1">
+                    <input type="text" id="warn-input-${mobileNumber}" placeholder="Type warning..." class="text-xs px-2 py-1.5 border border-slate-300 rounded outline-none focus:border-brand-500 w-full bg-slate-50">
+                    <button onclick="sendWarningMessage('${mobileNumber}')" class="bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded text-xs font-semibold shadow-sm transition shrink-0">Send</button>
+                </div>
+                
+                <!-- Block / Unblock Toggle -->
+                <button id="block-btn-${mobileNumber}" onclick="toggleBlockStudent('${mobileNumber}')" class="w-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs py-1.5 rounded font-bold transition">Block Exam</button>
+            `;
+
+            container.appendChild(label);
+            container.appendChild(video);
+            container.appendChild(controls);
+            grid.appendChild(container);
+        }
+
+        // --- ADMIN INTERVENTION ACTIONS ---
+
+        function sendWarningMessage(mobile) {
+            const input = document.getElementById(`warn-input-${mobile}`);
+            const msg = input.value.trim();
+            if(!msg) return;
+
+            if(activeConnections[mobile]) {
+                activeConnections[mobile].send({ type: 'WARNING', message: msg });
+                input.value = ''; // clear input
+                input.placeholder = "Sent successfully!";
+                setTimeout(() => input.placeholder = "Type warning...", 2000);
+            } else {
+                alert("Cannot send warning: Data connection not established with student yet.");
+            }
+        }
+
+        function toggleBlockStudent(mobile) {
+            const btn = document.getElementById(`block-btn-${mobile}`);
+            const isCurrentlyBlocked = btn.innerText.includes('Unblock');
+            
+            if(isCurrentlyBlocked) {
+                // UNBLOCK STUDENT
+                if(activeConnections[mobile]) activeConnections[mobile].send({ type: 'UNBLOCK' });
+                btn.innerText = "Block Exam";
+                btn.className = "w-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs py-1.5 rounded font-bold transition";
+                syncDatabaseStatus(mobile, 'approved');
+            } else {
+                // BLOCK STUDENT
+                if(activeConnections[mobile]) activeConnections[mobile].send({ type: 'BLOCK' });
+                btn.innerText = "Unblock Exam";
+                btn.className = "w-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs py-1.5 rounded font-bold transition";
+                syncDatabaseStatus(mobile, 'blocked');
+            }
+        }
+
+        // Updates the backend database so the block persists even if the student refreshes
+        function syncDatabaseStatus(mobile, status) {
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "bulkUpdateStudentStatus", mobiles: [mobile], status: status })
+            }).catch(e => console.error("Database sync failed:", e));
+        }
+
+        // --- CHEAT DETECTION & SORTING LOGIC ---
+
+        function triggerCheatWarning(mobileNumber, reason) {
+            const container = document.getElementById(`vid-container-${mobileNumber}`);
+            if (!container) return;
+
+            const alertZone = document.getElementById('alert-zone');
+            const alertGrid = document.getElementById('alert-grid');
+            alertZone.classList.remove('hidden');
+            alertGrid.appendChild(container);
+
+            container.classList.add('cheat-warning-border');
+
+            const label = document.getElementById(`label-${mobileNumber}`);
+            if (label) label.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Mobile: ${mobileNumber}`;
+
+            document.getElementById(`reason-${mobileNumber}`).innerText = `Alert: ${reason}`;
+            document.getElementById(`reason-${mobileNumber}`).className = "text-rose-600 font-bold truncate";
+            document.getElementById(`btn-dismiss-${mobileNumber}`).classList.remove('hidden');
+        }
+
+        function dismissWarning(mobileNumber) {
+            const container = document.getElementById(`vid-container-${mobileNumber}`);
+            if (!container) return;
+
+            document.getElementById('video-grid').appendChild(container);
+            container.classList.remove('cheat-warning-border');
+
+            const label = document.getElementById(`label-${mobileNumber}`);
+            if (label) label.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Mobile: ${mobileNumber}`;
+
+            document.getElementById(`reason-${mobileNumber}`).innerText = "Monitoring...";
+            document.getElementById(`reason-${mobileNumber}`).className = "text-slate-400 font-medium italic truncate";
+            document.getElementById(`btn-dismiss-${mobileNumber}`).classList.add('hidden');
+
+            const alertGrid = document.getElementById('alert-grid');
+            if (alertGrid.children.length === 0) {
+                document.getElementById('alert-zone').classList.add('hidden');
+            }
+        }
+
+        function removeVideoFromGrid(mobileNumber) {
+            const container = document.getElementById(`vid-container-${mobileNumber}`);
+            if(container) container.remove();
+            
+            const alertGrid = document.getElementById('alert-grid');
+            if (alertGrid.children.length === 0) document.getElementById('alert-zone').classList.add('hidden');
+            
+            if(document.getElementById('video-grid').children.length <= 1 && alertGrid.children.length === 0) {
+                document.getElementById('empty-state').style.display = 'flex';
+                document.getElementById('normal-zone-title').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

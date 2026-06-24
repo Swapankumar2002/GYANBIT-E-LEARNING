@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Database | Gyanbit Pvt. Ltd.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+        
+        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; padding: 40px; }
+        
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        h1 { color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        /* TABLE STYLES */
+        .table-container { overflow-x: auto; max-height: 600px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        
+        thead { background: #2563eb; color: white; position: sticky; top: 0; z-index: 10; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        th { font-weight: 600; text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; }
+        
+        tr:hover { background: #f8fafc; }
+        
+        /* Editable Inputs */
+        input.edit-field { 
+            width: 100%; padding: 8px; border: 1px solid transparent; 
+            border-radius: 5px; background: transparent; transition: 0.3s; font-family: inherit;
+        }
+        input.edit-field:focus { 
+            border-color: #2563eb; background: white; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); 
+        }
+
+        /* Buttons */
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
+        .btn-save { background: #16a34a; color: white; display: none; }
+        .btn-edit { background: #2563eb; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-back { background: #64748b; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Status Toast */
+        #toast { 
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 14px;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        .loader { text-align: center; padding: 40px; color: #64748b; font-weight: 500; }
+        .error-msg { color: #ef4444; font-weight: bold; }
+    </style>
+
+    <script>
+        (function() {
+            const user = localStorage.getItem('gyanbit_user');
+            const role = localStorage.getItem('gyanbit_role') || 'student';
+            const allowedRoles = ['admin', 'director', 'hr', 'manager'];
+
+            if (!user) {
+                window.location.href = 'login.html';
+            } else if (!allowedRoles.includes(role.toLowerCase())) {
+                alert("ACCESS DENIED: Admins only.");
+                window.location.href = 'dashboard.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1><i class="fas fa-database"></i> User Database</h1>
+        <div>
+            <a href="dashboard.html" class="btn btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <button class="btn btn-edit" onclick="fetchData()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>Reg. Date</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Password</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="7" class="loader"><i class="fas fa-circle-notch fa-spin"></i> Loading Data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // **********************************************
+    // PASTE YOUR DEPLOYED SCRIPT URL HERE
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxsK20HnrSJCqUdUdbgHhu7-WAdPrR2CGU5puQGuImvsmyC9ZhGdVY2eOp8Yr9WlkuymA/exec';
+    // **********************************************
+
+    window.onload = fetchData;
+
+    function fetchData() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="loader"><i class="fas fa-circle-notch fa-spin"></i> Loading Data...</td></tr>';
+
+        // Using text/plain ensures no OPTIONS preflight request (fixes some CORS issues)
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'read_all' })
+        })
+        .then(res => res.text()) // Read as text first to catch HTML errors
+        .then(text => {
+            try {
+                const response = JSON.parse(text); // Try parsing JSON
+                if(response.status === 'success') {
+                    renderTable(response.data);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" class="loader error-msg">Error: ${response.message}</td></tr>`;
+                }
+            } catch (e) {
+                console.error("Server Error:", text);
+                tbody.innerHTML = `<tr><td colspan="7" class="loader error-msg">Connection Failed! (Check Console)</td></tr>`;
+                alert("Connection Failed. Did you deploy the script as 'Anyone'?");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="7" class="loader error-msg">Network Error</td></tr>`;
+        });
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        if(data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loader">No users found in database.</td></tr>';
+            return;
+        }
+
+        data.forEach(row => {
+            let date = row[0] ? new Date(row[0]).toLocaleDateString() : '-';
+            const role = row[5] || 'Student';
+            
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${date}</td>
+                <td><input type="text" class="edit-field" value="${row[1]}" readonly></td>
+                <td><input type="text" class="edit-field" value="${row[2]}" readonly data-original="${row[2]}"></td>
+                <td><input type="text" class="edit-field" value="${row[3]}" readonly></td>
+                <td><input type="text" class="edit-field" value="${row[4]}" readonly></td>
+                <td>
+                    <select class="edit-field" disabled>
+                        <option value="Student" ${role === 'Student' ? 'selected' : ''}>Student</option>
+                        <option value="Admin" ${role === 'Admin' ? 'selected' : ''}>Admin</option>
+                        <option value="Manager" ${role === 'Manager' ? 'selected' : ''}>Manager</option>
+                        <option value="HR" ${role === 'HR' ? 'selected' : ''}>HR</option>
+                        <option value="Director" ${role === 'Director' ? 'selected' : ''}>Director</option>
+                        <option value="Employee" ${role === 'Employee' ? 'selected' : ''}>Employee</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-edit" onclick="enableEdit(this)"><i class="fas fa-pen"></i></button>
+                    <button class="btn btn-save" onclick="saveRow(this)"><i class="fas fa-save"></i></button>
+                    <button class="btn btn-delete" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function enableEdit(btn) {
+        let row = btn.closest('tr');
+        let inputs = row.querySelectorAll('.edit-field');
+        inputs.forEach(input => {
+            input.removeAttribute('readonly');
+            input.removeAttribute('disabled');
+            input.style.border = "1px solid #ccc";
+        });
+        btn.style.display = 'none';
+        row.querySelector('.btn-save').style.display = 'inline-flex';
+    }
+
+    function saveRow(btn) {
+        let row = btn.closest('tr');
+        let inputs = row.querySelectorAll('.edit-field');
+        let originalEmail = inputs[1].getAttribute('data-original');
+        
+        let updatedData = {
+            action: 'update',
+            originalEmail: originalEmail,
+            name: inputs[0].value,
+            email: inputs[1].value,
+            mobile: inputs[2].value,
+            password: inputs[3].value,
+            role: inputs[4].value
+        };
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(updatedData) })
+        .then(res => res.json())
+        .then(response => {
+            if(response.status === 'success') {
+                showToast("Update Successful!");
+                inputs.forEach(input => {
+                    input.setAttribute('readonly', true);
+                    input.setAttribute('disabled', true);
+                    input.style.border = "1px solid transparent";
+                });
+                btn.style.display = 'none';
+                row.querySelector('.btn-edit').style.display = 'inline-flex';
+                btn.innerHTML = '<i class="fas fa-save"></i>';
+                inputs[1].setAttribute('data-original', inputs[1].value);
+            } else {
+                showToast("Error: " + response.message);
+                btn.innerHTML = '<i class="fas fa-save"></i>';
+            }
+        });
+    }
+
+    function deleteRow(btn) {
+        if(!confirm("Are you sure? This cannot be undone.")) return;
+        let row = btn.closest('tr');
+        let email = row.querySelectorAll('.edit-field')[1].value;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', email: email }) })
+        .then(res => res.json())
+        .then(response => {
+            if(response.status === 'success') {
+                showToast("User Deleted!");
+                row.remove();
+            } else {
+                showToast("Delete Failed");
+            }
+        });
+    }
+
+    function showToast(msg) {
+        let x = document.getElementById("toast");
+        x.className = "show";
+        x.innerText = msg;
+        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+    }
+</script>
+
+</body>
+</html>

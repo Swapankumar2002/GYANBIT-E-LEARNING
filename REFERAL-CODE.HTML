@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Gyanbit Coupons</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .glass-card { background: white; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Referral Management</h1>
+                <p class="text-gray-500 text-sm mt-1">Create, toggle, and manage discount coupons.</p>
+            </div>
+            <div class="bg-indigo-600 text-white h-12 w-12 rounded-full flex items-center justify-center text-xl shadow-lg">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div class="md:col-span-1 glass-card p-6 h-max">
+                <h2 class="font-bold text-gray-700 mb-4 border-b pb-2">Add New Coupon</h2>
+                <form id="couponForm" onsubmit="createCoupon(event)">
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Coupon Code</label>
+                        <input type="text" id="inpCode" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none uppercase" placeholder="e.g. DIWALI500">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Discount Type</label>
+                        <select id="inpType" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="Amount">Flat Amount (₹)</option>
+                            <option value="Percentage">Percentage (%)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Discount Value</label>
+                        <input type="number" id="inpValue" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. 500 or 15">
+                    </div>
+
+                    <button type="submit" id="btnSave" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Create Coupon
+                    </button>
+                </form>
+            </div>
+
+            <div class="md:col-span-2 glass-card p-6">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="font-bold text-gray-700">Coupon Inventory</h2>
+                    <button onclick="loadCoupons()" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
+                        <i class="fa-solid fa-rotate-right"></i> Refresh
+                    </button>
+                </div>
+                
+                <div id="loader" class="text-center py-10 text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p class="text-sm">Loading Coupons...</p>
+                </div>
+
+                <div class="overflow-x-auto hidden" id="tableContainer">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                <th class="p-3 rounded-tl-lg">Code</th>
+                                <th class="p-3">Discount</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 rounded-tr-lg text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="couponList" class="text-sm text-gray-700">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 🔴 PASTE YOUR COURSES API URL HERE
+        // ============================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbxkwT26qJKDS3O6VNYTd-DtSA13QsUMQcteUbyeVSDXLKKxz4ykpwSQ1INileSu68PH/exec"; 
+
+        async function loadCoupons() {
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('tableContainer').classList.add('hidden');
+            
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                
+                console.log("Fetched Data from API:", data); // Debugging line
+
+                renderTable(data.couponsList || []);
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                Swal.fire("Error", "Could not load coupons. Check console for details.", "error");
+            }
+        }
+
+        function renderTable(coupons) {
+            const list = document.getElementById('couponList');
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('tableContainer').classList.remove('hidden');
+
+            if(coupons.length === 0) {
+                list.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-gray-400 italic">No coupons found.</td></tr>`;
+                return;
+            }
+
+            list.innerHTML = coupons.map(c => {
+                const displayValue = c.type === 'Percentage' ? `${c.value}%` : `₹${c.value}`;
+                const statusBadge = c.isActive 
+                    ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">Active</span>`
+                    : `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide">Inactive</span>`;
+                
+                const toggleIcon = c.isActive ? `<i class="fa-solid fa-toggle-on text-green-500 text-xl"></i>` : `<i class="fa-solid fa-toggle-off text-gray-400 text-xl"></i>`;
+
+                return `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition ${!c.isActive ? 'opacity-60' : ''}">
+                    <td class="p-3 font-bold text-indigo-700 tracking-wide">${c.code}</td>
+                    <td class="p-3 font-semibold text-gray-800">${displayValue}</td>
+                    <td class="p-3 text-center">${statusBadge}</td>
+                    <td class="p-3 text-right flex justify-end gap-2 items-center">
+                        <button onclick="toggleCoupon(${c.rowIndex}, ${!c.isActive})" class="hover:scale-110 transition" title="Toggle Status">
+                            ${toggleIcon}
+                        </button>
+                        <button onclick="deleteCoupon(${c.rowIndex})" class="text-red-500 hover:text-white hover:bg-red-500 p-2 rounded transition" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        async function createCoupon(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+            btn.disabled = true;
+
+            const payload = {
+                action: "create_coupon",
+                code: document.getElementById('inpCode').value.trim(),
+                type: document.getElementById('inpType').value,
+                value: document.getElementById('inpValue').value
+            };
+
+            try {
+                // Added mode: "no-cors" to bypass strict browser blocks
+                await fetch(API_URL, { 
+                    method: "POST", 
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(payload) 
+                });
+                
+                document.getElementById('couponForm').reset();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Coupon Created!', showConfirmButton: false, timer: 2000 });
+                setTimeout(loadCoupons, 1000); // Give sheet time to update before fetching
+            } catch (err) {
+                console.error(err);
+                Swal.fire("Error", "Failed to create coupon.", "error");
+            } finally {
+                btn.innerHTML = `<i class="fa-solid fa-plus"></i> Create Coupon`;
+                btn.disabled = false;
+            }
+        }
+
+        async function toggleCoupon(rowIndex, makeActive) {
+            Swal.showLoading();
+            await fetch(API_URL, { 
+                method: "POST", 
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action: "toggle_coupon", rowIndex: rowIndex, isActive: makeActive }) 
+            });
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Status Updated', showConfirmButton: false, timer: 1500 });
+            setTimeout(loadCoupons, 1000);
+        }
+
+        async function deleteCoupon(rowIndex) {
+            Swal.fire({
+                title: 'Delete this coupon?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Delete'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+                    await fetch(API_URL, { 
+                        method: "POST", 
+                        mode: "no-cors",
+                        headers: { "Content-Type": "text/plain" },
+                        body: JSON.stringify({ action: "delete_coupon", rowIndex: rowIndex }) 
+                    });
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Coupon Deleted', showConfirmButton: false, timer: 2000 });
+                    setTimeout(loadCoupons, 1000);
+                }
+            })
+        }
+
+        // Init
+        loadCoupons();
+    </script>
+</body>
+</html>
